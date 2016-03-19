@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(find_dangles CXX)
+project(find_inlets CXX)
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -13,9 +13,9 @@ endif ()
 find_package(GDAL REQUIRED)
 include_directories(${GDAL_INCLUDE_DIR})
 
-add_executable (find_dangles src/find_dangles.cpp)
+add_executable (find_inlets src/find_inlets.cpp)
 
-target_link_libraries(find_dangles ${GDAL_LIBRARY})
+target_link_libraries(find_inlets ${GDAL_LIBRARY})
 
-install(TARGETS find_dangles DESTINATION bin)
+install(TARGETS find_inlets DESTINATION bin)
 

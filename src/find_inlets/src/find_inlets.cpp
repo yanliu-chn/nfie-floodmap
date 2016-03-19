@@ -1,24 +1,13 @@
 /*  
- Copyright (C) 2016  
- National Center for Supercomputing Applications (NCSA)
- University of Illinois at Urbana-Champaign
- Author: Ahmet A. Yildirim (ayild@illinois.edu)
+University of Illinois/NCSA Open Source License
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License 
-version 2, 1991 as published by the Free Software Foundation.
+find_inlets: A software tool to find the inlet points in the shape file using a reference DEM file
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+Copyright (c) 2014-2016 CyberInfrastructure and Geospatial Information Laboratory (CIGI), University of Illinois at Urbana-Champaign. All rights reserved.
 
-A copy of the full GNU General Public License is included in file 
-gpl.html. This is also available at:
-http://www.gnu.org/copyleft/gpl.html
-or from:
-The Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
-Boston, MA  02111-1307, USA. 
+Developed by: CyberInfrastructure and Geospatial Information Laboratory (CIGI)
+University of Illinois at Urbana-Champaign
+http://cigi.illinois.edu
  */
 
 #include <cstdlib>
@@ -66,7 +55,7 @@ static double pixelheightDem;
 static double xleftedgeDem;
 static double ytopedgeDem;
 
-static void findDanglePoints();
+static void findInletPoints();
 static void loadDEM();
 static float getPointElev(double pointx, double pointy);
 static bool inLine(Point A, Point B, Point C);
@@ -134,7 +123,7 @@ static void loadDEM() {
             GDT_Float32, 0, 0);
 }
 
-static void findDanglePoints() {
+static void findInletPoints() {
     GDALDatasetH hDSFlow;
     OGRLayerH hLayerFlow;
     
@@ -323,8 +312,8 @@ static void findDanglePoints() {
 void usage() {
     cout << "INFO: Finds the dangle points on the flow file (-flow)" << endl;
     cout << "INFO: Outlet point is removed using dem file (-dem)" << endl;
-    cout << "INFO: Writes the result into shape file (-dangle)" << endl;
-    cout << "USAGE: find_dangles -flow [shape file of flow lines] -dem [reference dem file] -dangle [output shape file] (default: dangles.shp)" << endl;
+    cout << "INFO: Writes the result inlets into shape file (-inletsout)" << endl;
+    cout << "USAGE: find_dangles -flow [shape file of flow lines] -dem [reference dem file] -inletsout [output shape file] (default: inlets.shp)" << endl;
 }
 
 /*
@@ -344,14 +333,14 @@ int main(int argc, char** argv) {
         } else if (string(argv[i]) == "-dem") {
  	    if (i + 1 < argc)
                 demfile = string(argv[++i]);
-        } else if (string(argv[i]) == "-dangle") {
+        } else if (string(argv[i]) == "-inletsout") {
            if (i + 1 < argc) 
   	       danglefile = string(argv[++i]);
         }
     }
     
     if (danglefile == "") {
-        danglefile = "dangles.shp";
+        danglefile = "inlets.shp";
     }
     
     if (shapefile == "" || demfile == "") {
@@ -359,7 +348,7 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    findDanglePoints();
+    findInletPoints();
     return 0;
 }
 
