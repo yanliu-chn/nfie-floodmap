@@ -313,7 +313,7 @@ void usage() {
     cout << "INFO: Finds the dangle points on the flow file (-flow)" << endl;
     cout << "INFO: Outlet point is removed using dem file (-dem)" << endl;
     cout << "INFO: Writes the result inlets into shape file (-inletsout)" << endl;
-    cout << "USAGE: find_dangles -flow [shape file of flow lines] -dem [reference dem file] -inletsout [output shape file] (default: inlets.shp)" << endl;
+    cout << "USAGE: find_inlets -flow [shape file of flow lines] -dem [reference dem file] -inletsout [output shape file] (default: inlets.shp)" << endl;
 }
 
 /*
