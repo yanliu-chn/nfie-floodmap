@@ -1,4 +1,6 @@
-module load gdal2-stack
+
+module purge
+module load mpich gdal2-stack
 module load GCC/5.1.0-binutils-2.25
 mkdir build
 cd build
