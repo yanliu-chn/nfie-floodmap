@@ -12,19 +12,22 @@
 
 # env setup
 module purge
-module load mpich gdal2-stack GCC/5.1.0-binutils-2.25
+#module load mpich gdal2-stack GCC/5.1.0-binutils-2.25
+module load mpich gdal-stack
 exe=`readlink -f $0`
 sdir=`dirname $exe` 
 source $sdir/handbyhuc.env
 
 # config
-hucid="$1"
-[ -z "$hucid" ] && hucid='12090205'
+hucid='12090205'
+n='travis'
+[ ! -z "$1" ] && hucid="$1"
 huclen=${#hucid}
-n="$2" # name of outputs
-[ -z "$n" ] && n='travis'
+[ ! -z "$2" ] && n="$2"
 np="$3"
-[ -z "$np" ] && np=20
+[ -z "$np" ] && np=$PBS_NP && [ -z "$np" ] && np=20
+
+echo "[`date`] Running HAND workflow for HUC$hucid($n) using $np cores..."
 wdir=/gpfs_scratch/nfie/${n}
 cdir=`pwd`
 mkdir -p $wdir
@@ -79,4 +82,21 @@ gdal_rasterize  -ot Int16 -of GTiff -burn 1 -tr $cellsize_resx $cellsize_resy -t
 && [ $? -ne 0 ] && echo "ERROR rasterizing inlet shp to weight grid." && exit 1
 Tcount weights
 
+echo "=6=: taudem pitremove"
+echo "=6CMD= mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif"
+Tstart
+[ ! -f "${n}fel.tif" ] && \
+mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif \
+&& [ $? -ne 0 ] && echo "ERROR creating pitremove DEM." && exit 1
+Tcount pitremove 
+
+echo "=7=: taudem dinf"
+echo "=7CMD= mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif "
+Tstart
+[ ! -f "${n}ang.tif" ] && \
+mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
+&& [ $? -ne 0 ] && echo "ERROR creating dinf raster." && exit 1
+Tcount dinf
+
 cd $cdir
+echo "[`date`] Finished."

@@ -31,8 +31,8 @@ Boston, MA  02111-1307, USA.
 #include <gdal_priv.h>
 #include <ogr_spatialref.h>
 #include <float.h>
-#include <gdal/ogr_core.h>
-#include <gdal/ogr_srs_api.h>
+#include <ogr_core.h>
+#include <ogr_srs_api.h>
 
 using namespace std;
 
