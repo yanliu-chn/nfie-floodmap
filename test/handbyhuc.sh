@@ -8,6 +8,7 @@
 
 ## handbyhuc.sh: create Height Above Nearest Drainage raster by HUC code.
 ## Author: Yan Y. Liu <yanliu.illinois.edu>
+## Date: 04/04/2016
 ## This is a script to demonstrate all the steps needed to create HAND.
 
 # env setup
