@@ -12,8 +12,7 @@
 
 # env setup
 module purge
-#module load mpich gdal2-stack GCC/5.1.0-binutils-2.25
-module load mpich gdal-stack
+module load mpich gdal2-stack GCC/5.1.0-binutils-2.25
 exe=`readlink -f $0`
 sdir=`dirname $exe` 
 source $sdir/handbyhuc.env
@@ -82,6 +81,9 @@ gdal_rasterize  -ot Int16 -of GTiff -burn 1 -tr $cellsize_resx $cellsize_resy -t
 && [ $? -ne 0 ] && echo "ERROR rasterizing inlet shp to weight grid." && exit 1
 Tcount weights
 
+module purge
+module load mpich gdal-stack
+
 echo "=6=: taudem pitremove"
 echo "=6CMD= mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif"
 Tstart
@@ -97,6 +99,38 @@ Tstart
 mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
 && [ $? -ne 0 ] && echo "ERROR creating dinf raster." && exit 1
 Tcount dinf
+
+echo "=8=: taudem d8"
+echo "=9CMD= mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
+Tstart
+[ ! -f "${n}p.tif" ] && \
+mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
+&& [ $? -ne 0 ] && echo "ERROR creating d8 raster." && exit 1
+Tcount d8
+
+echo "=9=: taudem aread8 with weights"
+echo "=9CMD= mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ad8.tif -wg ${n}-weights.tif "
+Tstart
+[ ! -f "${n}ad8.tif" ] && \
+mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif \
+&& [ $? -ne 0 ] && echo "ERROR creating aread8 raster with weights." && exit 1
+Tcount aread8w
+
+echo "=10=: taudem threshold"
+echo "=10CMD= mpirun -np $np $taudem/threshold -ssa ${n}ssa.tif -src ${n}src.tif -thresh 1 "
+Tstart
+[ ! -f "${n}src.tif" ] && \
+mpirun -np $np $taudem/threshold -ssa ${n}ssa.tif -src ${n}src.tif -thresh 1 \
+&& [ $? -ne 0 ] && echo "ERROR creating streamgrid using threshold." && exit 1
+Tcount threshold
+
+echo "=11=: taudem dinfdistdown"
+echo "=11CMD= mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v"
+Tstart
+[ ! -f "${n}dd.tif" ] && \
+mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v \
+&& [ $? -ne 0 ] && echo "ERROR creating HAND raster." && exit 1
+Tcount dinfdistdown
 
 cd $cdir
 echo "[`date`] Finished."
