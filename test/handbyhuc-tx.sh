@@ -2,7 +2,7 @@
 #PBS -N huc12hand
 #PBS -e /gpfs_scratch/nfie/huc12/stderr
 #PBS -o /gpfs_scratch/nfie/huc12/stdout
-#PBS -l nodes=10:ppn=20,walltime=44:40:00
+#PBS -l nodes=10:ppn=20,walltime=44:30:00
 #PBS -M yanliu@ncsa.illinois.edu
 #PBS -m be
 
@@ -50,7 +50,7 @@ echo "=2=: create DEM from NED 10m"
 echo -e "\tThis step clips the DEM of the study watershed from the NED 10m VRT."
 echo -e "\tThe output is hucid.tif of the original projection (geo)."
 echo "=2CMD= gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" $dsdem ${n}.tif "
-
+ln -s /projects/demserve/results/new_HUC2_12_4269/DEM.tif ${n}.tif
 Tstart
 [ ! -f "${n}.tif" ] && \
 gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" $dsdem ${n}.tif \
