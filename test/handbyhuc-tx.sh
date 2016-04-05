@@ -2,7 +2,7 @@
 #PBS -N huc12hand
 #PBS -e /gpfs_scratch/nfie/huc12/stderr
 #PBS -o /gpfs_scratch/nfie/huc12/stdout
-#PBS -l nodes=10:ppn=20,walltime=32:00:00
+#PBS -l nodes=10:ppn=20,walltime=44:50:00
 #PBS -M yanliu@ncsa.illinois.edu
 #PBS -m be
 
@@ -22,6 +22,8 @@ hucid='12090205'
 n='travis'
 hucid='120402'
 n='gbay'
+hucid='12'
+n='tx'
 [ ! -z "$1" ] && hucid="$1"
 huclen=${#hucid}
 [ ! -z "$2" ] && n="$2"
@@ -95,18 +97,18 @@ mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif \
 Tcount pitremove 
 
 echo "=7=: taudem dinf"
-echo "=7CMD= mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif "
+echo "=7CMD= mpirun -np $np $taudem2/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif "
 Tstart
 [ ! -f "${n}ang.tif" ] && \
-mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
+mpirun -np $np $taudem2/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
 && [ $? -ne 0 ] && echo "ERROR creating dinf raster." && exit 1
 Tcount dinf
 
 echo "=8=: taudem d8"
-echo "=9CMD= mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
+echo "=9CMD= mpirun -np $np $taudem2/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
 Tstart
 [ ! -f "${n}p.tif" ] && \
-mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
+mpirun -np $np $taudem2/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
 && [ $? -ne 0 ] && echo "ERROR creating d8 raster." && exit 1
 Tcount d8
 
