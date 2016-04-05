@@ -2,7 +2,7 @@
 #PBS -N huc12hand
 #PBS -e /gpfs_scratch/nfie/huc12/stderr
 #PBS -o /gpfs_scratch/nfie/huc12/stdout
-#PBS -l nodes=10:ppn=20,walltime=44:50:00
+#PBS -l nodes=10:ppn=20,walltime=44:40:00
 #PBS -M yanliu@ncsa.illinois.edu
 #PBS -m be
 
@@ -13,7 +13,7 @@
 
 # env setup
 module purge
-module load MPICH gdal2-stack GCC/5.1.0-binutils-2.25
+module load MPICH gdal2-stack GCC/4.9.2-binutils-2.25
 sdir=/projects/nfie/nfie-floodmap/test
 source $sdir/handbyhuc.env
 

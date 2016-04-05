@@ -13,7 +13,7 @@
 
 # env setup
 module purge
-module load MPICH gdal2-stack GCC/5.1.0-binutils-2.25
+module load MPICH gdal2-stack GCC/4.9.2-binutils-2.25
 sdir=/projects/nfie/nfie-floodmap/test
 source $sdir/handbyhuc.env
 
