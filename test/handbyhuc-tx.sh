@@ -2,7 +2,7 @@
 #PBS -N huc12hand
 #PBS -e /gpfs_scratch/nfie/huc12/stderr
 #PBS -o /gpfs_scratch/nfie/huc12/stdout
-#PBS -l nodes=10:ppn=20,walltime=44:30:00
+#PBS -l nodes=10:ppn=20,walltime=44:00:00
 #PBS -M yanliu@ncsa.illinois.edu
 #PBS -m be
 
@@ -99,16 +99,16 @@ Tcount pitremove
 echo "=7=: taudem dinf"
 echo "=7CMD= mpirun -np $np $taudem2/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif "
 Tstart
-[ ! -f "${n}ang.tif" ] && \
-mpirun -np $np $taudem2/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
+[ ! -f "${n}ang.vrt" ] && \
+mpirun -np $np $taudem2/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.vrt -slp ${n}slp.vrt \
 && [ $? -ne 0 ] && echo "ERROR creating dinf raster." && exit 1
 Tcount dinf
 
 echo "=8=: taudem d8"
 echo "=9CMD= mpirun -np $np $taudem2/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
 Tstart
-[ ! -f "${n}p.tif" ] && \
-mpirun -np $np $taudem2/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
+[ ! -f "${n}p.vrt" ] && \
+mpirun -np $np $taudem2/d8flowdir -fel ${n}fel.tif -p ${n}p.vrt -sd8 ${n}sd8.vrt \
 && [ $? -ne 0 ] && echo "ERROR creating d8 raster." && exit 1
 Tcount d8
 
@@ -116,7 +116,7 @@ echo "=9=: taudem aread8 with weights"
 echo "=9CMD= mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ad8.tif -wg ${n}-weights.tif "
 Tstart
 [ ! -f "${n}ssa.tif" ] && \
-mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif \
+mpirun -np $np $taudem/aread8 -p ${n}p.vrt -ad8 ${n}ssa.tif -wg ${n}-weights.tif \
 && [ $? -ne 0 ] && echo "ERROR creating aread8 raster with weights." && exit 1
 Tcount aread8w
 
@@ -132,7 +132,7 @@ echo "=11=: taudem dinfdistdown"
 echo "=11CMD= mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v"
 Tstart
 [ ! -f "${n}dd.tif" ] && \
-mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v \
+mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.vrt -src ${n}src.tif -dd ${n}dd.tif -m ave v \
 && [ $? -ne 0 ] && echo "ERROR creating HAND raster." && exit 1
 Tcount dinfdistdown
 
