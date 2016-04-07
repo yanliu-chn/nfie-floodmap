@@ -1,0 +1,1 @@
+ogrinfo /gpfs_scratch/usgs/wbd/WBD_National.gdb WBDHU6 -geom=NO -sql "select HUC6 from WBDHU6" | grep "  HUC6 " | awk '{print $4}' |sort > list.HUC6

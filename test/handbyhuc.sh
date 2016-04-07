@@ -18,10 +18,10 @@ sdir=/projects/nfie/nfie-floodmap/test
 source $sdir/handbyhuc.env
 
 # config
-hucid='12090205'
-n='travis'
 hucid='120402'
 n='gbay'
+hucid='12090205'
+n='travis'
 [ ! -z "$1" ] && hucid="$1"
 huclen=${#hucid}
 [ ! -z "$2" ] && n="$2"
@@ -43,15 +43,21 @@ ogr2ogr ${n}-wbd.shp $dswbd WBDHU${huclen} -where "HUC${huclen}='${hucid}'" \
 && [ $? -ne 0 ] && echo "ERROR creating watershed boundary shp." && exit 1
 Tcount wbd
 
+echo "=1.1=: buffer boundary shp to avoid edge contamination effect"
+echo "ogr2ogr -dialect sqlite -sql \"select ST_buffer(Geometry, $bufferdist) from '${n}-wbd'\" ${n}-wbdbuf.shp ${n}-wbd.shp "
+Tstart
+[ ! -f "${n}-wbdbuf.shp" ] && \
+ogr2ogr -dialect sqlite -sql "select ST_buffer(Geometry, $bufferdist) from '${n}-wbd'" ${n}-wbdbuf.shp ${n}-wbd.shp  \
+&& [ $? -ne 0 ] && echo "ERROR buffering boundary shp." && exit 1
+Tcount wbdbuf
 
 echo "=2=: create DEM from NED 10m"
 echo -e "\tThis step clips the DEM of the study watershed from the NED 10m VRT."
 echo -e "\tThe output is hucid.tif of the original projection (geo)."
-echo "=2CMD= gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" $dsdem ${n}.tif "
-
+echo "gdalwarp -cutline ${n}-wbdbuf.shp -cl ${n}-wbdbuf -crop_to_cutline -of \"GTiff\" -overwrite -co \"COMPRESS=LZW\" -co \"BIGTIFF=YES\" $dsdem ${n}.tif "
 Tstart
 [ ! -f "${n}.tif" ] && \
-gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" $dsdem ${n}.tif \
+gdalwarp -cutline ${n}-wbdbuf.shp -cl ${n}-wbdbuf -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" $dsdem ${n}.tif \
 && [ $? -ne 0 ] && echo "ERROR clipping study area DEM." && exit 1
 Tcount dem
 
