@@ -1,0 +1,1 @@
+python Hydraulic_Property.py -catchment Catchment.shp -flowline Flowline.shp -HAND HAND.tif
