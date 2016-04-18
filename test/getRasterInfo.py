@@ -63,7 +63,7 @@ fsize = sizeof_fmt(os.path.getsize(sys.argv[1]))
 cols = ds.RasterXSize
 rows = ds.RasterYSize
 nodata = ds.GetRasterBand(1).GetNoDataValue()
-stats = ds.GetRasterBand(1).GetStatistics(True, True)
+#stats = ds.GetRasterBand(1).GetStatistics(True, True)
 
 gt=ds.GetGeoTransform()
 ext=GetExtent(gt,cols,rows)
@@ -83,10 +83,10 @@ print fsize,
 print cols,
 print rows,
 print nodata,
-print stats[0],
-print stats[1],
-print stats[2],
-print stats[3],
+#print stats[0],
+#print stats[1],
+#print stats[2],
+#print stats[3],
 #print "\"" + str(lat1) + "," + str(lon1) + "," + str(lat2) + "," + str(lon2) + "\""
 print str(lon1),
 print str(lat1),

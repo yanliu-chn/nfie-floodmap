@@ -1,8 +1,8 @@
 #!/bin/bash
-#PBS -N huc12hand
-#PBS -e /gpfs_scratch/nfie/huc12/stderr
-#PBS -o /gpfs_scratch/nfie/huc12/stdout
-#PBS -l nodes=10:ppn=20,walltime=32:00:00
+#PBS -N __N__
+#PBS -e __RWDIR__/__HUCID__/stderr
+#PBS -o __RWDIR__/__HUCID__/stdout
+#PBS -l nodes=__NP__:ppn=20,walltime=__T__
 #PBS -M yanliu@ncsa.illinois.edu
 #PBS -m be
 
@@ -22,14 +22,19 @@ hucid='120402'
 n='gbay'
 hucid='12090205'
 n='travis'
+hucid='__HUCID__'
+n='__HUCID__'
 [ ! -z "$1" ] && hucid="$1"
 huclen=${#hucid}
 [ ! -z "$2" ] && n="$2"
 np="$3"
 [ -z "$np" ] && np=$PBS_NP && [ -z "$np" ] && np=20
 
+T00=`date +%s` 
 echo "[`date`] Running HAND workflow for HUC$hucid($n) using $np cores..."
-wdir=/gpfs_scratch/nfie/${n}
+rwdir=/gpfs_scratch/nfie # root working dir
+[ ! -z "$PBS_NP" ] && rwdir=__RWDIR__
+wdir=$rwdir/${n}
 cdir=`pwd`
 mkdir -p $wdir
 cd $wdir
@@ -140,5 +145,7 @@ mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}s
 && [ $? -ne 0 ] && echo "ERROR creating HAND raster." && exit 1
 Tcount dinfdistdown
 
+T01=`date +%s`
+echo "=STAT= $hucid $T00 `expr $T01 \- $T00` $np" 
 cd $cdir
 echo "[`date`] Finished."

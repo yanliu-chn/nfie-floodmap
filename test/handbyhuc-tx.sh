@@ -79,7 +79,7 @@ echo "=5=: rasterize inlet points"
 Tstart
 [ ! -f "${n}-weights.tif" ] && \
 ogr2ogr -t_srs $dsepsg ${n}-inlets.shp ${n}-inlets0.shp && \
-read fsizeDEM colsDEM rowsDEM nodataDEM minDEM maxDEM meanDEM sdDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfo.py ${n}.tif) && \
+read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfo.py ${n}.tif) && \
 echo "=5CMD= gdal_rasterize  -ot Int16 -of GTiff -burn 1 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax ${n}-inlets.shp ${n}-weights.tif" && \
 gdal_rasterize  -ot Int16 -of GTiff -burn 1 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax ${n}-inlets.shp ${n}-weights.tif \
 && [ $? -ne 0 ] && echo "ERROR rasterizing inlet shp to weight grid." && exit 1
