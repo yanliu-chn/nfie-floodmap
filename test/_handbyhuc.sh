@@ -122,10 +122,10 @@ mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif 
 Tcount d8
 
 echo "=9=: taudem aread8 with weights"
-echo "=9CMD= mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ad8.tif -wg ${n}-weights.tif "
+echo "=9CMD= mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif -nc"
 Tstart
 [ ! -f "${n}ssa.tif" ] && \
-mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif \
+mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif -nc \
 && [ $? -ne 0 ] && echo "ERROR creating aread8 raster with weights." && exit 1
 Tcount aread8w
 
