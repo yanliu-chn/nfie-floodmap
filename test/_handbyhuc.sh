@@ -114,7 +114,7 @@ mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}sl
 Tcount dinf
 
 echo "=8=: taudem d8"
-echo "=9CMD= mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
+echo "=8CMD= mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
 Tstart
 [ ! -f "${n}p.tif" ] && \
 mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
@@ -144,6 +144,14 @@ Tstart
 mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v \
 && [ $? -ne 0 ] && echo "ERROR creating HAND raster." && exit 1
 Tcount dinfdistdown
+
+echo "=12=: clip DistDown raster to original WBD size"
+echo "gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" ${n}.tif ${n}hand.tif "
+Tstart
+[ ! -f "${n}hand.tif" ] && \
+gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" ${n}.tif ${n}hand.tif \
+&& [ $? -ne 0 ] && echo "ERROR clipping DistDown raster to original WBD boundary" && exit 1
+Tcount hand
 
 T01=`date +%s`
 echo "=STAT= $hucid $T00 `expr $T01 \- $T00` $np" 
