@@ -7,8 +7,9 @@
 #PBS -m be
 
 ## handbyhuc.sh: create Height Above Nearest Drainage raster by HUC code.
+## version: v0.11
 ## Author: Yan Y. Liu <yanliu.illinois.edu>
-## Date: 04/04/2016
+## Date: 05/27/2016
 ## This is a script to demonstrate all the steps needed to create HAND.
 
 # env setup
@@ -89,8 +90,8 @@ gdal_rasterize  -ot Int16 -of GTiff -burn 1 -tr $cellsize_resx $cellsize_resy -t
 && [ $? -ne 0 ] && echo "ERROR rasterizing inlet shp to weight grid." && exit 1
 Tcount weights
 
-module purge
-module load MPICH gdal-stack
+#module purge
+#module load MPICH gdal-stack
 
 echo "=6=: taudem pitremove"
 echo "=6CMD= mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif"
@@ -101,18 +102,22 @@ mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif \
 Tcount pitremove 
 
 echo "=7=: taudem dinf"
-echo "=7CMD= mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif "
+#echo "=7CMD= mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif "
+echo "=7CMD= mpirun -np $np $taudemdinf -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif "
 Tstart
 [ ! -f "${n}ang.tif" ] && \
-mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
+#mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
+mpirun -np $np $taudemdinf -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
 && [ $? -ne 0 ] && echo "ERROR creating dinf raster." && exit 1
 Tcount dinf
 
 echo "=8=: taudem d8"
-echo "=8CMD= mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
+#echo "=8CMD= mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
+echo "=8CMD= mpirun -np $np $taudemd8 -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif "
 Tstart
 [ ! -f "${n}p.tif" ] && \
-mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
+#mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
+mpirun -np $np $taudemd8 -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
 && [ $? -ne 0 ] && echo "ERROR creating d8 raster." && exit 1
 Tcount d8
 
@@ -141,10 +146,14 @@ mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}s
 Tcount dinfdistdown
 
 echo "=12=: clip DistDown raster to original WBD size"
-echo "gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" ${n}.tif ${n}hand.tif "
+echo "gdalwarp does a bad job in clipping, which results in huge output raster."
+echo "so we create an uncompressed tmp hand; then move it to the right size."
+echo "gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" ${n}dd.tif ${n}hand.tif "
 Tstart
 [ ! -f "${n}hand.tif" ] && \
-gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "COMPRESS=LZW" -co "BIGTIFF=YES" ${n}.tif ${n}hand.tif \
+gdalwarp -cutline ${n}-wbd.shp -cl ${n}-wbd -crop_to_cutline -of "GTiff" -overwrite -co "BIGTIFF=YES" ${n}dd.tif ${n}handtmp.tif \
+&& gdal_translate -of GTiff -co "COMPRESS=LZW" -co "BIGTIFF=YES" ${n}handtmp.tif ${n}hand.tif \
+&& rm -f ${n}handtmp.tif \
 && [ $? -ne 0 ] && echo "ERROR clipping DistDown raster to original WBD boundary" && exit 1
 Tcount hand
 
