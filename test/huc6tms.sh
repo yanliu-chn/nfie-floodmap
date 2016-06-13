@@ -37,7 +37,7 @@ for hucid in `ls $sdir`; do
     [ ! -d $tmsdir ] && mkdir -p $tmsdir
     colordd=$tdir/HUCDDCOLOR$hucid.$RANDOM.tif
     echo "=HUC=$hucid HAND colorize; TMS; output bbox metainfo"
-    echo "gdaldem color-relief $hand $colorfile $colordd -of GTiff -alpha && gdal2tiles.py -e -z 5-10 -a 0,0,0 -p geodetic -s epsg:4326 -r bilinear -w openlayers -t \"HAND Raster - HUC $hucid (v0.11)\" $colordd $tmsdir && read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<\$(python $rastermetatool $hand) && echo \"\$xmin \$ymin \$xmax \$ymax\" > $tmsdir/extent.txt && rm -f $colordd" >>$cmdfile
+    echo "gdaldem color-relief $hand $colorfile $colordd -of GTiff -alpha && gdal2tiles-patched.py -e -z 5-10 -a 0,0,0 -p geodetic -s epsg:4326 -r bilinear -w openlayers -t \"HAND Raster - HUC $hucid (v0.11)\" $colordd $tmsdir && read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<\$(python $rastermetatool $hand) && echo \"\$xmin \$ymin \$xmax \$ymax\" > $tmsdir/extent.txt && rm -f $colordd" >>$cmdfile
     
 done
 echo "GNU Parallel command file has been created: $cmdfile"

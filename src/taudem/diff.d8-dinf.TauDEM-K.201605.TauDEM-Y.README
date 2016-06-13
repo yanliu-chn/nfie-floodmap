@@ -1,0 +1,180 @@
+44a: #include <math.h>
+
+56a: using namespace std;
+
+57-58c: added orelevDir
+template<typename T> long resolveFlats(T& elevDEM, SparsePartition<short>& inc, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, linearpart<float>& orelevDir);
+template<typename T> long resolveFlats_parallel(T& elevDEM, SparsePartition<short>& inc, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, linearpart<float>& orelevDir);
+
+60-65c: flowDir type: short->float
+template<typename T> void flowTowardsLower(T& elev, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, SparsePartition<short>& inc);
+template<typename T> void flowFromHigher(T& elevDEM, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, SparsePartition<short>& inc);
+template<typename T> int markPits(T& elevDEM, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, SparsePartition<short>& inc);
+
+size_t propagateIncrements(linearpart<float>& flowDir, SparsePartition<short>& inc, std::vector<node>& queue);
+size_t propagateBorderIncrements(linearpart<float>& flowDir, SparsePartition<short>& inc);
+
+68a: long setPosDirDinf(linearpart<float>& elevDEM, linearpart<float>& flowDir, linearpart<float>& slope, int useflowfile);
+
+70c: dontCross(): short to float
+int dontCross(int k, int i, int j, linearpart<float>& flowDir) 
+
+117-187: removed setFlow() and calcSlope()
+
+189: setdird8() renamed to setdir()
+
+=setdird8()
+253-255c: type: short->float
+    float flowDirNodata = MISSINGFLOAT;
+
+    linearpart<float> flowDir(totalX, totalY, dx, dy, MPI_FLOAT, flowDirNodata);
+
+257-281d: do not read flowfile in dinf
+
+285-305c: calc slope -> ang
+    uint64_t numFlat;
+    {
+        t.start("Calculate flow directions");
+        float slopeNodata = -1.0f;
+        linearpart<float> slope(totalX, totalY, dx, dy, MPI_FLOAT, slopeNodata);
+
+        numFlat = setPosDirDinf(elevDEM, flowDir, slope, useflowfile);
+        t.end("Calculate flow directions");
+
+        t.start("Write slope");
+        tiffIO slopeIO(slopefile, FLOAT_TYPE, &slopeNodata, dem);
+        slopeIO.write(xstart, ystart, ny, nx, slope.getGridPointer());
+        t.end("Write slope");
+    }
+
+326c: flowDir test: 0 -> -1
+                if (flowDir.getData(i, j) == -1) {
+
+377c: flowDir test: 0 -> -1
+                            if (flowDir.getData(in, jn) == -1) {
+
+386c: flowDir test: 0 -> -1
+                        if (flowDir.getData(in, jn) == -1)
+
+414c: call new resolveFlats_parallel interface
+            size_t lastNumFlat = resolveFlats_parallel(elevDEM, inc, flowDir, borderingIslands, elevDEM);
+
+425c: call new resolveFlats_parallel interface
+                lastNumFlat = resolveFlats_parallel(inc, newInc, flowDir, borderingIslands, elevDEM);
+
+442c: call new resolveFlats interface
+            size_t lastNumFlat = resolveFlats(elevDEM, inc, flowDir, islands, elevDEM);
+
+454c: call new resolveFlats interface
+                lastNumFlat = resolveFlats(inc, newInc, flowDir, islands, elevDEM);
+
+469c: short to float for IO
+tiffIO pointIO(pointfile, FLOAT_TYPE, &flowDirNodata, dem);
+
+481-543d: remove setPosDir(), setFlow2()
+
+481a: VSLOPE(), SET2, templated SET2, setPosDirDinf()
+
+=flowTowardsLower() 
+593c: interface short->float
+void flowTowardsLower(T& elev, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, SparsePartition<short>& inc) {
+
+614c: short -> float
+                    float flow = flowDir.getData(in, jn);
+
+619c: test against float
+                    if ((elevDiff >= 0 && flow >= 0.0) || edgeDrain) {
+
+=flowFromHigher()
+642c: 
+void flowFromHigher(T& elev, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, SparsePartition<short>& inc) {
+
+=markPits()
+684c: short -> float
+int markPits(T& elevDEM, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, SparsePartition<short>& inc) {
+
+705c: short -> float
+                    float flow = flowDir.getData(in, jn);
+
+708c: test against dinf
+                    if (elevDiff >= 0 && flow == -1) {
+
+711c: test against dinf
+                    } else if (flow == -1) {
+
+=resolveFlats()
+736c: short -> float; added orelevDir
+long resolveFlats(T& elevDEM, SparsePartition<short>& inc, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, linearpart<float>& orelevDir) {
+
+782-791c: set dinf flowdir on flat cells
+    long flatsRemaining = 0;
+    double tempdxc, tempdyc;
+    for (auto& island : islands) {
+        for (node flat : island) {
+            //setFlow2(flat.x, flat.y, flowDir, elevDEM, inc);
+            orelevDir.getdxdyc(flat.y, tempdxc, tempdyc);
+            float DXX[3] = {0, tempdxc, tempdyc}; //tardemlib.cpp ln 1291
+            float DD = sqrt(tempdxc * tempdxc + tempdyc * tempdyc); //tardemlib.cpp ln 1293
+
+            SET2(flat.y, flat.x, DXX, DD, elevDEM, inc, flowDir);
+
+            if (flowDir.getData(flat.x, flat.y) == -1) {
+                flatsRemaining++;
+            }
+        }
+    }
+
+793c: test against dinf
+     auto hasFlowDirection = [&](const node& n) { return flowDir.getData(n.x, n.y) != -1; };
+
+=resolveFlats_parallel()
+808c: short -> float; added orelevDir
+long resolveFlats_parallel(T& elev, SparsePartition<short>& inc, linearpart<float>& flowDir, std::vector<std::vector<node>>&islands, linearpart<float>& orelevDir) {
+
+883-893c: set dinf flowdir for flat cells
+    uint64_t localFlatsRemaining = 0, globalFlatsRemaining = 0;
+    double tempdxc, tempdyc;
+
+    for (auto& island : islands) {
+        for (node flat : island) {
+            //setFlow2(flat.x, flat.y, flowDir, elev, inc);
+            orelevDir.getdxdyc(flat.y, tempdxc, tempdyc);
+            float DXX[3] = {0, tempdxc, tempdyc}; //tardemlib.cpp ln 1291
+            float DD = sqrt(tempdxc * tempdxc + tempdyc * tempdyc); //tardemlib.cpp ln 1293
+
+            SET2(flat.y, flat.x, DXX, DD, elev, inc, flowDir);
+
+            if (flowDir.getData(flat.x, flat.y) == -1) {
+                localFlatsRemaining++;
+            }
+        }
+    }
+
+898c: test against dinf
+     auto hasFlowDirection = [&](const node& n) { return flowDir.getData(n.x, n.y) != -1; };
+
+=propagateIncrements()
+912c: short -> float
+size_t propagateIncrements(linearpart<float>& flowDir, SparsePartition<short>& inc, std::vector<node>& queue) {
+
+931-933c: short -> float; test against dinf
+                    float flow = flowDir.getData(in, jn);
+
+                    if (flow == -1 && inc.getData(in, jn) == 0) {
+
+=propagateBorderIncrements()
+952c: short -> float
+size_t propagateBorderIncrements(linearpart<float>& flowDir, SparsePartition<short>& inc) {
+
+985-988c: short->float; test against dinf
+                float flow = flowDir.getData(in, jn);
+                auto neighSt = inc.getData(in, jn);
+
+                if (flow == -1 && (neighSt == 0 || neighSt > st + 1 || -neighSt > st + 1)) {
+
+1023-1026c: short->float; test against dinf
+                    float flow = flowDir.getData(in, jn);
+                    auto neighInc = inc.getData(in, jn);
+
+                    if (flow == -1 && (neighInc == 0 || neighInc > flat.inc + 1 || -neighInc > flat.inc + 1)) {
+

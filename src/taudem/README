@@ -1,0 +1,8 @@
+[01/26/2016] cmake on Kornelijus' taudem repo (with new d8flowdir algo and taudem 5.3.1 merged)
+module purge
+module load MPICH CMake gdal2-stack
+mkdir build
+cd build
+CC=mpicc CXX=mpicxx cmake -DGDAL_INCLUDE_DIR=$GDAL_HOME/include -DGDAL_LIBRARY_DIR=$GDAL_HOME/lib ..
+make
+# executables are in build/bin/

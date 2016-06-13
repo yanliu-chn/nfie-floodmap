@@ -1,0 +1,252 @@
+45d44
+< #include <vector>
+50a50
+> #include "createpart.h"
+413c413
+<             SparsePartition<int> inc(nx, ny, 0);
+---
+>             SparsePartition<short> inc(nx, ny, 0);
+423c423
+<                 SparsePartition<int> newInc(nx, ny, 0);
+---
+>                 SparsePartition<short> newInc(nx, ny, 0);
+441c441
+<             SparsePartition<int> inc(nx, ny, 0);
+---
+>             SparsePartition<short> inc(nx, ny, 0);
+452c452
+<                 SparsePartition<int> newInc(nx, ny, 0);
+---
+>                 SparsePartition<short> newInc(nx, ny, 0);
+546c546
+< void setFlow2(int i, int j, linearpart<short>& flowDir, T& elev, SparsePartition<int>& inc)
+---
+> void setFlow2(int i, int j, linearpart<short>& flowDir, T& elev, SparsePartition<short>& inc)
+593c593
+< void flowTowardsLower(T& elev, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands, SparsePartition<int>& inc)
+---
+> void flowTowardsLower(T& elev, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands, SparsePartition<short>& inc)
+642c642
+< void flowFromHigher(T& elev, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands, SparsePartition<int>& inc)
+---
+> void flowFromHigher(T& elev, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands, SparsePartition<short>& inc)
+647,648d646
+<     std::vector<node> highBoundaries;
+< 
+650a649,650
+>         std::vector<node> highBoundaries;
+> 
+678d677
+<     }
+680c679,680
+<     propagateIncrements(flowDir, inc, highBoundaries);
+---
+>         propagateIncrements(flowDir, inc, highBoundaries);
+>     }
+684c684
+< int markPits(T& elevDEM, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands, SparsePartition<int>& inc)
+---
+> int markPits(T& elevDEM, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands, SparsePartition<short>& inc)
+733a734
+> 
+735c736
+< long resolveFlats(T& elevDEM, SparsePartition<int>& inc, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands)
+---
+> long resolveFlats(T& elevDEM, SparsePartition<short>& inc, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands)
+751c752
+<     SparsePartition<int> s(nx, ny, 0);
+---
+>     SparsePartition<short> s(nx, ny, 0);
+759c760
+<     int higherFlowMax = 0;
+---
+>     short higherFlowMax = 0;
+763c764
+<             int val = s.getData(flat.x, flat.y);
+---
+>             short val = s.getData(flat.x, flat.y);
+807c808
+< long resolveFlats_parallel(T& elev, SparsePartition<int>& inc, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands)
+---
+> long resolveFlats_parallel(T& elev, SparsePartition<short>& inc, linearpart<short>& flowDir, std::vector<std::vector<node>>& islands)
+809,810c810,811
+<     int nx = flowDir.getnx();
+<     int ny = flowDir.getny();
+---
+>     long nx = flowDir.getnx();
+>     long ny = flowDir.getny();
+815c816
+<     uint64_t numFlatsChanged = 0, totalNumFlatsChanged = 0;
+---
+>     int numFlatsChanged = 0, totalNumFlatsChanged = 0;
+823c824
+<         MPI_Allreduce(&numFlatsChanged, &totalNumFlatsChanged, 1, MPI_UINT64_T, MPI_SUM, MCW);
+---
+>         MPI_Allreduce(&numFlatsChanged, &totalNumFlatsChanged, 1, MPI_INT, MPI_SUM, MCW);
+826c827
+<             printf("PRL: Lower gradient processed %llu flats this iteration\n", totalNumFlatsChanged);
+---
+>             printf("PRL: Lower gradient processed %d flats this iteration\n", totalNumFlatsChanged);
+835c836
+<     SparsePartition<int> higherGradient(nx, ny, 0);
+---
+>     SparsePartition<short> higherGradient(nx, ny, 0);
+843c844
+<         MPI_Allreduce(&numFlatsChanged, &totalNumFlatsChanged, 1, MPI_UINT64_T, MPI_SUM, MCW);
+---
+>         MPI_Allreduce(&numFlatsChanged, &totalNumFlatsChanged, 1, MPI_INT, MPI_SUM, MCW);
+846c847
+<             printf("PRL: Higher gradient processed %llu flats this iteration\n", totalNumFlatsChanged);
+---
+>             printf("PRL: Higher gradient processed %d flats this iteration\n", totalNumFlatsChanged);
+854c855
+<     int higherFlowMax = 0;
+---
+>     short higherFlowMax = 0;
+858c859
+<             int val = higherGradient.getData(flat.x, flat.y);
+---
+>             short val = higherGradient.getData(flat.x, flat.y);
+866,870c867,868
+<     // It is local to a flat area, but can that be reduced further to minimize comm?
+<     int globalHigherFlowmax = 0;
+<     MPI_Allreduce(&higherFlowMax, &globalHigherFlowmax, 1, MPI_INT, MPI_MAX, MCW);
+< 
+<     size_t badCells = 0;
+---
+>     short globalHigherFlowmax = 0;
+>     MPI_Allreduce(&higherFlowMax, &globalHigherFlowmax, 1, MPI_SHORT, MPI_MAX, MCW);
+874,881c872
+<             auto val = inc.getData(flat.x, flat.y);
+<             auto highFlow = higherGradient.getData(flat.x, flat.y);
+< 
+<             inc.setData(flat.x, flat.y, val + (globalHigherFlowmax - highFlow));
+< 
+<             if (val < 0 || val == INT_MAX || highFlow < 0 || highFlow == INT_MAX) {
+<                 badCells++;
+<             }
+---
+>             inc.addToData(flat.x, flat.y, globalHigherFlowmax - higherGradient.getData(flat.x, flat.y));
+885,888d875
+<     if (badCells > 0) {
+<         printf("warning rank %d: %d increment values either incorrect or overflown\n", rank, badCells);
+<     }
+< 
+925c912
+< size_t propagateIncrements(linearpart<short>& flowDir, SparsePartition<int>& inc, std::vector<node>& queue) {
+---
+> size_t propagateIncrements(linearpart<short>& flowDir, SparsePartition<short>& inc, std::vector<node>& queue) {
+962,965d948
+<     if (st < 0) {
+<         printf("WARNING: increment overflow during propagation (st = %d)\n", st);
+<     }
+< 
+969c952
+< size_t propagateBorderIncrements(linearpart<short>& flowDir, SparsePartition<int>& inc)
+---
+> size_t propagateBorderIncrements(linearpart<short>& flowDir, SparsePartition<short>& inc)
+974c957,967
+<     std::vector<node> queue;
+---
+>     struct pnode {
+>         int x;
+>         int y;
+>         int inc;
+> 
+>         bool operator<(const struct pnode& b) const {
+>             return inc < b.inc;
+>         }
+>     };
+>     
+>     std::vector<pnode> queue;
+978,980c971
+<     // FIXME: don't scan border if not needed
+<     int ignoredGhostCells = 0;
+< 
+---
+>     // FIXME: oob access
+988,992d978
+<             if (st == INT_MAX) {
+<                 ignoredGhostCells++;
+<                 continue;
+<             }
+< 
+999,1000c985,986
+<                 bool noFlow = flowDir.getData(in, jn) == 0;
+<                 auto neighInc = inc.getData(in, jn);
+---
+>                 short flow = flowDir.getData(in, jn);
+>                 auto neighSt = inc.getData(in, jn);
+1002,1007c988,989
+<                 if (noFlow && (neighInc == 0 || std::abs(neighInc) > st + 1)) {
+<                     // If neighbor increment is positive, we are overriding a larger increment
+<                     // and it is not yet in the queue
+<                     if (neighInc >= 0) {
+<                         queue.emplace_back(in, jn);
+<                     }
+---
+>                 if (flow == 0 && (neighSt == 0 || neighSt > st + 1 || -neighSt > st + 1)) {
+>                     queue.push_back({in, jn, st + 1});
+1009c991
+<                     // Here we set a negative increment if it's still not set
+---
+>                     // Here we set a negative increment if it's still pending
+1019,1022d1000
+<     if (ignoredGhostCells > 0) {
+<        printf("warning: ignored %d ghost cells which were at upper limit (%d)\n", ignoredGhostCells, SHRT_MAX);
+<     }
+< 
+1024d1001
+<     size_t abandonedCells = 0;
+1026c1003,1005
+<     std::vector<node> newFlats;
+---
+>     // Sort queue by lowest increment
+>     std::sort(queue.begin(), queue.end());
+>     std::vector<pnode> newFlats;
+1029,1044c1008,1011
+<         for(node flat : queue) {
+<             // Increments are stored as negative for the cells that have been added to the queue
+<             // (to signify that they need to be explored)
+<             auto st = -inc.getData(flat.x, flat.y);
+<           
+<             // I don't think this is possible anymore, but just in case.
+<             if (st <= 0) {
+<                 printf("warning: unexpected non-negative increment @ (%d, %d) - %d\n", flat.x, flat.y, -st);
+<                 continue;
+<             }
+< 
+<             inc.setData(flat.x, flat.y, st);
+<             numChanged++;
+< 
+<             if (st == INT_MAX) {
+<                 abandonedCells++;
+---
+>         for(pnode flat : queue) {
+>             // Skip if the increment was already set and it is lower 
+>             auto st = inc.getData(flat.x, flat.y);
+>             if (st > 0 && st <= flat.inc) {
+1059,1066c1026,1028
+<                     if (flow == 0 && (neighInc == 0 || std::abs(neighInc) > st + 1)) {
+<                         // If neighbor increment is positive, we are overriding a larger increment
+<                         // and it is not yet in the queue
+<                         if (neighInc >= 0) {
+<                            newFlats.emplace_back(in, jn);
+<                         }
+< 
+<                         inc.setData(in, jn, -(st + 1));
+---
+>                     if (flow == 0 && (neighInc == 0 || neighInc > flat.inc + 1 || -neighInc > flat.inc + 1)) {
+>                         newFlats.push_back({in, jn, flat.inc + 1});
+>                         inc.setData(in, jn, -(flat.inc + 1));
+1069a1032,1034
+> 
+>             inc.setData(flat.x, flat.y, flat.inc);
+>             numChanged++;
+1071a1037
+>         std::sort(newFlats.begin(), newFlats.end());
+1076,1079d1041
+<     if (abandonedCells > 0) {
+<         printf("warning: gave up propagating %zu cells because they were at upper limit (%d)\n", abandonedCells, INT_MAX);
+<     }
+< 
