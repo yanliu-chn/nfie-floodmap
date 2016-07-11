@@ -103,6 +103,10 @@ void findDanglePointsV2() {
 
     OGR_L_ResetReading(hLayerFlow);
 
+    OGRFeatureDefnH hFDefn = OGR_L_GetLayerDefn(hLayerFlow);
+    int indexFromNode = OGR_FD_GetFieldIndex(hFDefn, "FromNode");
+    int indexToNode = OGR_FD_GetFieldIndex(hFDefn, "ToNode");
+
     OGRFeatureH hFeature;
 
     while ((hFeature = OGR_L_GetNextFeature(hLayerFlow)) != NULL) {
@@ -112,8 +116,8 @@ void findDanglePointsV2() {
         OGRFeatureDefnH hFDefn;
         int iField;
         hFDefn = OGR_L_GetLayerDefn(hLayerFlow);
-        int fromPoint = OGR_F_GetFieldAsInteger(hFeature, 14);
-        int toPoint = OGR_F_GetFieldAsInteger(hFeature, 15);
+        int fromPoint = OGR_F_GetFieldAsInteger(hFeature, indexFromNode);
+        int toPoint = OGR_F_GetFieldAsInteger(hFeature, indexToNode);
         
 
         if (hGeometry != NULL) {
