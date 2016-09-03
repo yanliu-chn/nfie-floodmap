@@ -259,18 +259,28 @@ def main():
     dim_comid = netcdf_file.createDimension('COMID',len(COMIDlist))
     dim_sh = netcdf_file.createDimension('StageHeight',range_sh)
     vari_sh = netcdf_file.createVariable('StageHeight','f',dimensions=("StageHeight"))
+    vari_sh.units = 'meters'
     vari_comid = netcdf_file.createVariable('COMID','i8',dimensions=("COMID"))
     vari_length = netcdf_file.createVariable('Length','f',dimensions=("COMID"))
+    vari_length.units = 'meters'
     vari_slope = netcdf_file.createVariable('Slope','f',dimensions=("COMID"))
     vari_roughness = netcdf_file.createVariable('Roughness','f',dimensions=("COMID"))
     vari_cw = netcdf_file.createVariable('Width','f',dimensions=("COMID","StageHeight"))
+    vari_cw.units = 'meters'
     vari_sa = netcdf_file.createVariable('SurfaceArea','f',dimensions=("COMID","StageHeight"))
+    vari_sa.units = 'square meters'
     vari_wa = netcdf_file.createVariable('WetArea','f',dimensions=("COMID","StageHeight"))
+    vari_wa.units = 'square meters'
     vari_wp = netcdf_file.createVariable('WettedPerimeter','f',dimensions=("COMID","StageHeight"))
+    vari_wp.units = 'meters'
     vari_ba = netcdf_file.createVariable('BedArea','f',dimensions=("COMID","StageHeight"))
+    vari_ba.units = 'square meters'
     vari_hr = netcdf_file.createVariable('HydraulicRadius','f',dimensions=("COMID","StageHeight"))
+    vari_hr.units = 'meters'
     vari_volume = netcdf_file.createVariable('Volume','f',dimensions=("COMID","StageHeight"))
+    vari_volume.units = 'cubic meters'
     vari_discharge = netcdf_file.createVariable('Discharge','f',dimensions=("COMID","StageHeight"))
+    vari_discharge.units = 'cubic meters per second'
     for j in np.arange(0, Hmax, dh):
         vari_sh[int(j/dh)] = j
     HANDClipper(catchmentshp, flowlineshp, handtif,
