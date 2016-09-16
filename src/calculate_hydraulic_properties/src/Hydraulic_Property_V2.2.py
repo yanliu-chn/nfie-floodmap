@@ -282,7 +282,7 @@ def main():
     vari_discharge = netcdf_file.createVariable('Discharge','f',dimensions=("COMID","StageHeight"))
     vari_discharge.units = 'cubic meters per second'
     for j in np.arange(0, Hmax, dh):
-        vari_sh[int(j/dh)] = j
+        vari_sh[int(np.round(j/dh))] = j
     HANDClipper(catchmentshp, flowlineshp, handtif,
                 COMIDlist, RiverLength_dic, Slope_dic,
                 Hmax, dh, roughness, range_sh, vari_comid,
