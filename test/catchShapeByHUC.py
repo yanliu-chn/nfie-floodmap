@@ -4,7 +4,7 @@
 # each HUC6 has thousands to tens of thousands of flowlines.
 # We build a hash for flowline objects; then use the hash to query the big
 # catchment database.
-# Yan Y. Liu <yanliu.illinois.edu>
+# Yan Y. Liu <yanliu@illinois.edu>
 # 10/31/2016
 # Input: HUC code
 # Input: HUC flowline shape file
@@ -25,6 +25,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
         print "queryCatchByHash(): ERROR output dir not exists: " + str(odir) + "\n"
         sys.exit( 1 )
     of = odir + "/" + Hucid + "_catch.sqlite"
+    comidfile = odir + "/" + Hucid + "_comid.txt"
     if os.path.exists(of):
         print "queryCatchByHash(): ERROR output file already exists: " + str(of) + ". Remove and run this program again if you want to re-create. " + "\n"
         sys.exit( 1 )
@@ -88,6 +89,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     # filter and keep only the records with FEATUREID=COMID
     i = 0
     count = 0
+    fcomid = open(comidfile, "w")
     print "0%"
     for f in lyr: # for each row. in NHDPlus MR, it's 2.67m
         comid = f.GetFieldAsInteger(fi_comid)
@@ -109,12 +111,14 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
                 sys.exit( 1 )
             fc.Destroy()
             count += 1
+            fcomid.write(str(comid) + "\n")
         i += 1
         if (i % (num_records / 10 + 1) == 0):
             print "-->" + str((i * 100)/num_records) + "%"
 
     print "\nDone\n"
     print "CATCHMENT_POLYGON_COUNT " + str(count) + "\n"
+    fcomid.close()
     ds = None
     ods = None
    
