@@ -13,9 +13,12 @@ endif ()
 find_package(GDAL REQUIRED)
 include_directories(${GDAL_INCLUDE_DIR})
 
-add_executable (find_inlets src/find_inlets.cpp)
+add_executable (find_inlets_mr src/find_inlets.cpp)
+add_executable (find_inlets_hr src/find_inlets_hr.cpp)
 
-target_link_libraries(find_inlets ${GDAL_LIBRARY})
+target_link_libraries(find_inlets_mr ${GDAL_LIBRARY})
+target_link_libraries(find_inlets_hr ${GDAL_LIBRARY})
 
-install(TARGETS find_inlets DESTINATION bin)
+install(TARGETS find_inlets_mr DESTINATION bin)
+install(TARGETS find_inlets_hr DESTINATION bin)
 

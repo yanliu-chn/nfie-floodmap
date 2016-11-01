@@ -20,7 +20,12 @@ The Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA. 
  */
 
+/* WARNING: this code cannot be used on NHDPlus MR dataset */
+/* In NHDPlus HR, start pnt's (x,y) is stored at the end of geom array */
+/* Which is weird. */
+
 #include <cstdlib>
+#include <cstdio>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -56,7 +61,8 @@ struct LineList {
 struct LineList2 {
     Point sPoint;
     Point ePoint;
-    long fromPoint;
+    //long fromPoint;
+    string fromPoint; // encoding fromPoint as string: FromNode_x(%.8f)_y(%.8f) to handle multiple lines with the same FromNode and ToNode. millimeter resolution
 };
 
 static string shapefile;
@@ -99,15 +105,26 @@ void findDanglePointsV2() {
     OSRReference(hSpatialRefFlowLines);
     
     vector<LineList2> lineStrings;
-    unordered_set<long> toPoints;
+    unordered_set<string> toPoints;
 
     OGR_L_ResetReading(hLayerFlow);
 
     OGRFeatureDefnH hFDefn = OGR_L_GetLayerDefn(hLayerFlow);
     int indexFromNode = OGR_FD_GetFieldIndex(hFDefn, "FromNode");
     int indexToNode = OGR_FD_GetFieldIndex(hFDefn, "ToNode");
+    int indexReachCode = OGR_FD_GetFieldIndex(hFDefn, "ReachCode"); //hr
+    if (indexReachCode == -1) {
+        indexReachCode = OGR_FD_GetFieldIndex(hFDefn, "REACHCODE"); //mr
+    }
+    int indexNHDPlusID = OGR_FD_GetFieldIndex(hFDefn, "NHDPlusID"); // hr
+    if (indexFromNode == -1 || indexToNode == -1 || indexReachCode == -1) {
+        fprintf(stderr, "ERROR: input data does not have one of the mandatory attributes: indexReachCode, indexToNode, indexFromNode");
+        exit(1);
+    }
 
     OGRFeatureH hFeature;
+
+    char buf[256];
 
     while ((hFeature = OGR_L_GetNextFeature(hLayerFlow)) != NULL) {
         OGRGeometryH hGeometry;
@@ -116,8 +133,18 @@ void findDanglePointsV2() {
         OGRFeatureDefnH hFDefn;
         int iField;
         hFDefn = OGR_L_GetLayerDefn(hLayerFlow);
-        int fromPoint = OGR_F_GetFieldAsInteger(hFeature, indexFromNode);
-        int toPoint = OGR_F_GetFieldAsInteger(hFeature, indexToNode);
+        long long fromPoint = OGR_F_GetFieldAsInteger64(hFeature, indexFromNode);
+        long long toPoint = OGR_F_GetFieldAsInteger64(hFeature, indexToNode);
+        long long reachCode = OGR_F_GetFieldAsInteger64(hFeature, indexReachCode);
+        long long nhdPlusID = -1;
+        if (indexNHDPlusID >= 0) {
+            nhdPlusID = OGR_F_GetFieldAsInteger64(hFeature, indexNHDPlusID);
+        }
+        if (fromPoint == 0 || toPoint == 0) { // skip lines without FromNode and ToNode
+            fprintf(stderr, "WARN: NO FromNode or ToNode in feature ReachCode=%ld NHDPlusID=%ld\n", reachCode, nhdPlusID);
+            continue;
+        }
+        
 
         if (hGeometry != NULL) {
             OGRwkbGeometryType gType = wkbFlatten(OGR_G_GetGeometryType(hGeometry));
@@ -131,19 +158,32 @@ void findDanglePointsV2() {
                 Point tmpEnd = Point(xBuffer[pc - 1], yBuffer[pc - 1]);
 
                 LineList2 line;
-                line.sPoint = tmpStart;
-                line.ePoint = tmpEnd;
-                line.fromPoint = fromPoint;
+                //line.sPoint = tmpStart;
+                line.sPoint = tmpEnd;
+                //line.ePoint = tmpEnd;
+                line.ePoint = tmpStart;
+                //sprintf(buf, "%ld_%.8lf_%.8lf", fromPoint, tmpStart.x, tmpStart.y);
+                sprintf(buf, "%ld_%.8lf_%.8lf", fromPoint, tmpEnd.x, tmpEnd.y);
+                //printf("FromNode %s ", buf);
+                //line.fromPoint = fromPoint;
+                line.fromPoint = buf;
                 
                 lineStrings.push_back(line);
                 
                 free(xBuffer);
                 free(yBuffer);
                 
-                auto got = toPoints.find (toPoint);
+                //sprintf(buf, "%ld_%.8lf_%.8lf", toPoint, tmpEnd.x, tmpEnd.y);
+                sprintf(buf, "%ld_%.8lf_%.8lf", toPoint, tmpStart.x, tmpStart.y);
+                //printf("ToNode %s\n", buf);
+                string toPointEncoded=buf;
+                //auto got = toPoints.find (toPoint);
+                auto got = toPoints.find (toPointEncoded);
 
-                if (got == toPoints.end())
-                    toPoints.insert(toPoint);
+                if (got == toPoints.end()) {
+                    //toPoints.insert(toPoint);
+                    toPoints.insert(toPointEncoded);
+                }
             }
         }
 
