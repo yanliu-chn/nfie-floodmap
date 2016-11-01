@@ -93,7 +93,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     print "0%"
     for f in lyr: # for each row. in NHDPlus MR, it's 2.67m
         comid = f.GetFieldAsInteger(fi_comid)
-        if comid in flowHash: # computational expensive if hash size is big
+        if comid in flowHash: # computationally expensive if hash size is big
             shplen = f.GetFieldAsDouble(fi_shplen) 
             shparea = f.GetFieldAsDouble(fi_shparea) 
             areasqkm = f.GetFieldAsDouble(fi_areasqkm) 
