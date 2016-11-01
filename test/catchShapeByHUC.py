@@ -89,7 +89,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     # filter and keep only the records with FEATUREID=COMID
     i = 0
     count = 0
-    fcomid = open(comidfile, "w")
+    comidlist = np.zeros(len(flowHash), dtype='int32')
     print "0%"
     for f in lyr: # for each row. in NHDPlus MR, it's 2.67m
         comid = f.GetFieldAsInteger(fi_comid)
@@ -110,14 +110,17 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
                 print "queryCatchByHash(): ERROR Creating new feature in output for COMID=" + str(comid) + " .\n"
                 sys.exit( 1 )
             fc.Destroy()
+            comidlist[count] = comid
             count += 1
-            fcomid.write(str(comid) + "\n")
         i += 1
         if (i % (num_records / 10 + 1) == 0):
             print "-->" + str((i * 100)/num_records) + "%"
 
     print "\nDone\n"
     print "CATCHMENT_POLYGON_COUNT " + str(count) + "\n"
+    fcomid = open(comidfile, "w")
+    for i in range(0, count):
+        fcomid.write(str(comidlist[i]) + "\n")
     fcomid.close()
     ds = None
     ods = None
