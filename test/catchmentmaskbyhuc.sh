@@ -17,7 +17,7 @@ hucquerypre=`echo $hucid | cut -b 1-8`
 wdir=$2
 [ ! -d $wdir ] && echo "ERROR: work dir does not exist: $wdir" && exit 1
 [ ! -f "$wdir/${n}-flows.shp" ] && echo "ERROR: Flowline shp does not exist: $wdir/${n}-flows.shp" && exit 1
-[ ! -f "$wdir/${n}hand.tif" ] && echo "ERROR: HAND raster does not exist: $wdir/${n}hand.tif" && exit 1
+[ ! -f "$wdir/${n}dd.tif" ] && echo "ERROR: HAND raster does not exist: $wdir/${n}dd.tif" && exit 1 # use dd.tif to have same dim with slp.tif for hydroprop calc
 tdir=/tmp
 [ -d "/scratch/$PBS_JOBID" ] && tdir=/scratch/$PBS_JOBID
 
@@ -40,8 +40,8 @@ echo "TIME query_catchment_polygons `expr $t2 \- $t1`"
 
 ## rasterize
 t1=`date +%s`
-echo "read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfoNative.py $wdir/${n}hand.tif) && gdal_rasterize -of GTiff -co \"COMPRESS=LZW\" -co \"BIGTIFF=YES\" -a COMID -l $l2 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax -ot Int32 -a_nodata 0 $wdir/${n}_catch.sqlite $wdir/${n}catchmask.tif"
-[ ! -f $wdir/${n}catchmask.tif ] && read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfoNative.py $wdir/${n}hand.tif) && gdal_rasterize -of GTiff -co "COMPRESS=LZW" -co "BIGTIFF=YES" -a COMID -l $l2 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax -ot Int32 -a_nodata 0 $wdir/${n}_catch.sqlite $wdir/${n}catchmask.tif
+echo "read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfoNative.py $wdir/${n}dd.tif) && gdal_rasterize -of GTiff -co \"COMPRESS=LZW\" -co \"BIGTIFF=YES\" -a COMID -l $l2 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax -ot Int32 -a_nodata 0 $wdir/${n}_catch.sqlite $wdir/${n}catchmask.tif"
+[ ! -f $wdir/${n}catchmask.tif ] && read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfoNative.py $wdir/${n}dd.tif) && gdal_rasterize -of GTiff -co "COMPRESS=LZW" -co "BIGTIFF=YES" -a COMID -l $l2 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax -ot Int32 -a_nodata 0 $wdir/${n}_catch.sqlite $wdir/${n}catchmask.tif
 t2=`date +%s`
 echo "TIME rasterize_catchment_polygons `expr $t2 \- $t1`"
 

@@ -119,8 +119,9 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     print "\nDone\n"
     print "CATCHMENT_POLYGON_COUNT " + str(count) + "\n"
     fcomid = open(comidfile, "w")
+    fcomid.write(str(count) + "\n") # first row is count
     for i in range(0, count):
-        fcomid.write(str(comidlist[i]) + "\n")
+        fcomid.write(str(comidlist[i]) + "\n") # each row is comid
     fcomid.close()
     ds = None
     ods = None
