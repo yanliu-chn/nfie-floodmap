@@ -45,3 +45,15 @@ echo "read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx 
 t2=`date +%s`
 echo "TIME rasterize_catchment_polygons `expr $t2 \- $t1`"
 
+## hydro property calculation
+t1=`date +%s`
+taudem2=/gpfs_scratch/taudem/TauDEM-CatchHydroGeo
+module purge
+module load MPICH gdal2-stack GCC/4.9.2-binutils-2.25 python/2.7.10 pythonlibs/2.7.10
+[ ! -f $wdir/hydroprop-basetable-${n}.csv ] && mpirun -np $PBS_NP $taudem2/catchhydrogeo -hand $wdir/${n}dd.tif -catch $wdir/${n}catchmask.tif -catchlist $wdir/${n}_comid.txt -slp $wdir/${n}slp.tif -h $sdir/stage.txt -table $wdir/hydroprop-basetable-${n}.csv
+## addon hydro properties 
+[ ! -f $wdir/hydroprop-fulltable-${n}.csv ] && python $sdir/hydraulic_property_postprocess.py $wdir/hydroprop-basetable-${n}.csv 0.05 $wdir/hydroprop-fulltable-${n}.csv
+t2=`date +%s`
+echo "TIME hydroprop `expr $t2 \- $t1`"
+
+

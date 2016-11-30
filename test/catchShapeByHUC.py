@@ -18,6 +18,9 @@ import numpy as np
 
 # function: filter Catchment layer to store only the catchment shape for the HUC
 def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, odir = None, flowHash = None):
+    global keys
+    global slopes
+    global linelens
     if flowHash is None or len(flowHash) <= 0:
         print "queryCatchByHash(): ERROR Flowline HASH is empty. \n"
         sys.exit( 1 )
@@ -77,7 +80,9 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
         sys.exit( 1 )
     # create fields
     ofdef_comid = ogr.FieldDefn( "COMID", ogr.OFTInteger)
-    if olyr.CreateField ( ofdef_comid ) != 0 or olyr.CreateField ( fdef_shplen) != 0 or olyr.CreateField ( fdef_shparea ) != 0 or olyr.CreateField ( fdef_areasqkm ) != 0:
+    ofdef_slope = ogr.FieldDefn( "SLOPE", ogr.OFTReal)
+    ofdef_linelen = ogr.FieldDefn( "LINELEN", ogr.OFTReal)
+    if olyr.CreateField ( ofdef_comid ) != 0 or olyr.CreateField ( fdef_shplen) != 0 or olyr.CreateField ( fdef_shparea ) != 0 or olyr.CreateField ( fdef_areasqkm ) != 0 or olyr.CreateField ( ofdef_slope ) != 0 or olyr.CreateField ( ofdef_linelen ) != 0:
         print "queryCatchByHash(): ERROR Creating fields in output .\n"
         sys.exit( 1 )
     # get integer index to speed up the loops
@@ -86,10 +91,12 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     ofi_shplen = olyr_defn.GetFieldIndex('Shape_Length')
     ofi_shparea = olyr_defn.GetFieldIndex('Shape_Area')
     ofi_areasqkm = olyr_defn.GetFieldIndex('AreaSqKM')
+    ofi_slope= olyr_defn.GetFieldIndex('SLOPE') # line segment slope
+    ofi_linelen = olyr_defn.GetFieldIndex('LINELEN') # line segment length
     # filter and keep only the records with FEATUREID=COMID
     i = 0
     count = 0
-    comidlist = np.zeros(len(flowHash), dtype='int32')
+    comid_index_list = np.zeros(len(flowHash), dtype='int32')
     print "0%"
     for f in lyr: # for each row. in NHDPlus MR, it's 2.67m
         comid = f.GetFieldAsInteger(fi_comid)
@@ -103,6 +110,9 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
             fc.SetField(ofi_shplen, shplen)
             fc.SetField(ofi_shparea, shparea)
             fc.SetField(ofi_areasqkm, areasqkm)
+            comid_index = flowHash[comid]
+            fc.SetField(ofi_slope, slopes[comid_index])
+            fc.SetField(ofi_linelen, linelens[comid_index])
             # create geom field
             geom = f.GetGeometryRef()
             fc.SetGeometry( geom ) # this method makes a copy of geom
@@ -110,7 +120,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
                 print "queryCatchByHash(): ERROR Creating new feature in output for COMID=" + str(comid) + " .\n"
                 sys.exit( 1 )
             fc.Destroy()
-            comidlist[count] = comid
+            comid_index_list[count] = comid_index
             count += 1
         i += 1
         if (i % (num_records / 10 + 1) == 0):
@@ -121,7 +131,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     fcomid = open(comidfile, "w")
     fcomid.write(str(count) + "\n") # first row is count
     for i in range(0, count):
-        fcomid.write(str(comidlist[i]) + "\n") # each row is comid
+        fcomid.write(str(keys[comid_index_list[i]]) + " " + str(slopes[comid_index_list[i]]) + " " + str(linelens[comid_index_list[i]]) + "\n") # each row is comid
     fcomid.close()
     ds = None
     ods = None
@@ -129,6 +139,9 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
 
 # function: build hash for flowline keys (COMID) 
 def buildFlowlineHash(flowShpFile = None, lyrName = None, keyFieldName = None):
+    global keys
+    global slopes
+    global linelens
     # open shape file
     ds = gdal.OpenEx( flowShpFile, gdal.OF_VECTOR | gdal.OF_READONLY)
     if ds is None :
@@ -142,26 +155,38 @@ def buildFlowlineHash(flowShpFile = None, lyrName = None, keyFieldName = None):
     num_records = lyr.GetFeatureCount()
     lyr_defn = lyr.GetLayerDefn()
     fi_comid = lyr_defn.GetFieldIndex(keyFieldName)
-    if fi_comid < 0 :
-        print "buildFlowlineHash(): ERROR no key field: " + str(keyFieldName) + "\n"
+    fi_slope = lyr_defn.GetFieldIndex('SLOPE')
+    fi_linelen = lyr_defn.GetFieldIndex('LENGTHKM')
+    if fi_comid < 0 or fi_slope < 0 :
+        print "buildFlowlineHash(): ERROR no key/slope field: " + str(keyFieldName) + "\n"
         sys.exit( 1 )
 
     # scan for keys 
     keys = np.zeros(num_records, dtype='int32')
+    slopes = np.zeros(num_records, dtype='float64')
+    linelens = np.zeros(num_records, dtype='float64')
     i = 0
     for f in lyr:
-        comid = f.GetFieldAsInteger(fi_comid)
-        keys[i] = comid
+        keys[i] = f.GetFieldAsInteger(fi_comid)
+        slopes[i] = f.GetFieldAsDouble(fi_slope)
+        linelens[i] = f.GetFieldAsDouble(fi_linelen)
         i+=1
 
     ds = None   # close input layer 
 
     # build hash
-    flowHash = frozenset(keys) # hash as frozenset
-    #flowHash = dict.fromkeys(keys) # hash as pre-sized dictionary
+    #flowHash = frozenset(keys) # hash as frozenset
+    flowHash = dict.fromkeys(keys) # hash as pre-sized dictionary
+    for j in range(0, i):
+        flowHash[keys[j]] = j
 
     # return
     return flowHash
+
+# global vars
+keys=None
+slopes=None
+linelens=None
 
 # usage: 
 # module purge
