@@ -107,6 +107,7 @@ def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None
         for index, row in csvdata.iterrows(): # loop each row of the table
             catchid = int(row['CatchId']) # get comid
             if not catchid in h: # hydro table doesn't have info for this comid
+                missings += 1
                 continue
             if comid is None:
                 comid = catchid
