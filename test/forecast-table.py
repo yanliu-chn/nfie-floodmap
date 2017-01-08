@@ -44,6 +44,13 @@ def readForecast(in_nc = None):
 
     rootgrp.close() # close netcdf file to save memory
 
+    # check for invalid Qfc
+    negCount = 0
+    for i in range(Qs.size):
+        if Qs[i] < 0.0:
+            negCount += 1
+    print "readForecast(): Warning: read " + str(negCount) + " forecasts with negative value. Will skip these COMIDs."
+
     # create hash table
     h = dict.fromkeys(comids)
     for i in range(0, dimsize):
@@ -56,7 +63,9 @@ def readForecast(in_nc = None):
 
 # interpolate H forecast from the static H and Q table dervied from HAND
 # assuming the ascending order to stage heights for a COMID in CSV table
-def Hinterpolate(Qfc = 0.0, Hlist = [], Qlist = [], count = 0):
+def Hinterpolate(Qfc = 0.0, Hlist = [], Qlist = [], count = 0, comid = 0):
+    if Qfc <= 0:
+        return -9999.0
     Q1 = None
     Q1i = 0
     Q2 = None
@@ -73,14 +82,20 @@ def Hinterpolate(Qfc = 0.0, Hlist = [], Qlist = [], count = 0):
     if Q1 is None: # Qfc falls below the range of Qs
         return Hlist[0]
     if Q2 is None: # Qfc falls beyond the range of Qs
-        Q1 = Qlist[0]
-        Q1i = 0
+        Q1 = Qlist[count - 2]
+        Q1i = count - 2 # count has to be >=2
         Q2 = Qlist[count - 1]
         Q2i = count - 1
-    if Q2 == Q1:
-        print "WARNING: discharge data flat: count=" + str(count) + " Q1="+str(Q1)+" Q2="+str(Q2)
-        return Hlist[Q1i]
-    return (Qfc - Q1) * (Hlist[Q2i] - Hlist[Q1i]) / (Q2 - Q1) + Hlist[Q1i]
+    if Qlist[Q2i] < 0.00000001: # stage table is wrong
+        return -9999.0 # can't predict
+    if abs(Q2 - Q1) < 0.000001:
+        print "WARNING: discharge data flat: count=" + str(count) + " Q1="+str(Q1)+" Q2="+str(Q2) + " Qfc=" + str(Qfc)
+        return Hlist[Q2i]
+    
+    Hfc =  (Qfc - Q1) * (Hlist[Q2i] - Hlist[Q1i]) / (Q2 - Q1) + Hlist[Q1i]
+    if Hfc > 25.0: # debug
+        print "DEBUG: irregular Hfc: comid=" + str(comid) + " Hfc=" + str(Hfc) + " Qfc=" + str(Qfc) + " Q1=" + str(Q1) + " Q2=" + str(Q2) + " H1=" +str(Hlist[Q1i]) + " H2=" +str(Hlist[Q2i]) + " Q1i=" + str(Q1i) + " Q2i=" + str(Q2i)
+    return Hfc
 
 
 def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None, odir = None):
@@ -95,46 +110,70 @@ def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None
     missings = 0 # in hydro table but not in station hash
     catchcount = 0 # count of catchments in hydro table
     for i in range(0, len(tablelist)): # scan each HUC's hydro prop table
-        csvfile = tablelist[i]
-        csvdata = pd.read_csv(csvfile)
-        catchcount += (csvdata.size / numHeights )
-        print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + csvfile + " : " + str(csvdata.size/14) + " rows "
+        hpfile = tablelist[i]
+        hpdata = None
+        colcatchid = None # memory to store CatchId column
+        colH = None # memory to store Stage column
+        colQ = None # memory to store Discharge (m3s-1)/Discharge column
+        filetype = hpfile.split('.')[-1]
+        print hpfile + "   +++++++   " + filetype
+        if filetype == 'csv':
+            hpdata = pd.read_csv(hpfile)
+            colcatchid = np.copy(hpdata['CatchId'])
+            colH = np.copy(hpdata['Stage'])
+            colQ = np.copy(hpdata['Discharge (m3s-1)'])
+        elif filetype == 'nc':
+            hpdata = netCDF4.Dataset(hpfile, 'r')
+            colcatchid = np.copy(hpdata.variables['CatchId'])
+            colH = np.copy(hpdata.variables['Stage'])
+            colQ = np.copy(hpdata.variables['Discharge'])
+        #TODO: error handling on unsupported file formats
+        catchcount += (colcatchid.size / numHeights )
+        print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + hpfile + " : " + str(colcatchid.size) + " rows "
         sys.stdout.flush()
         comid = None
         count = 0
         Hlist = np.zeros(numHeights, dtype = 'float64')
         Qlist = np.zeros(numHeights, dtype = 'float64')
-        for index, row in csvdata.iterrows(): # loop each row of the table
-            catchid = int(row['CatchId']) # get comid
+        #for index, row in csvdata.iterrows(): # loop each row of the table
+        for i in range(colcatchid.size):
+            catchid = int(colcatchid[i]) # get comid
             if not catchid in h: # hydro table doesn't have info for this comid
                 missings += 1
                 continue
             if comid is None:
                 comid = catchid
             if comid != catchid : # time to interpolate
+                if count < numHeights:
+                    print "Warning: COMID " + str(comid) + " has <" + str(numHeights) + " rows on hydroprop table"
                 j = h[comid]
                 Qfc = Qs[j]
-                Hfc = Hinterpolate(Qfc, Hlist, Qlist, count)
-                comidlist[fccount] = comid
-                Hfclist[fccount] = Hfc
-                Qfclist[fccount] = Qfc
-                fccount += 1
+                if Qfc > 0.0:
+                    Hfc = Hinterpolate(Qfc, Hlist, Qlist, count, comid)
+                    if Hfc > 0.0:
+                        comidlist[fccount] = comid
+                        Hfclist[fccount] = Hfc
+                        Qfclist[fccount] = Qfc
+                        fccount += 1
                 count = 0
                 comid = catchid
-            Hlist[count] = row['Stage']
-            Qlist[count] = row['Discharge (m3s-1)']
+                Hlist.fill(0)
+                Qlist.fill(0)
+            Hlist[count] = colH[i]
+            Qlist[count] = colQ[i]
             count += 1
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Read " + str(len(comids)) + " stations from NWM, " + str(catchcount) + " catchments from hydro table. " + str(missings) + " comids in hydro table but not in NWM. " + " generated " + str(fccount) + " forecasts"
     sys.stdout.flush()
     # save to netcdf
     xds = xr.Dataset({
         'COMID': (['index'], comidlist[:fccount]),
-        'Time': (['index'], [timestr for i in range(fccount)]),
+#        'Time': (['index'], [timestr for i in range(fccount)]),
         'H': (['index'], Hfclist[:fccount]),
         'Q': (['index'], Qfclist[:fccount])
     })
     xds.attrs = {
         'Subject': 'Inundation table derived from HAND and NOAA NWM for CONUS',
+        'Timestamp': timestr,
         'Description': 'Inundation lookup table for all the COMIDs in CONUS through the aggregation of HUC6-level hydro property tables and NOAA NWM forecast netcdf on channel_rt'
     }
     xds['COMID'].attrs = { 'units': 'index', 'long_name': 'Catchment ID (COMID)'}
@@ -150,9 +189,11 @@ def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None
     sys.stdout.flush()
     with open(ofilecsv, 'wb') as ofcsv:
         ow = csv.writer(ofcsv, delimiter = ',')
-        ow.writerow(['COMID', 'Time', 'H', 'Q']) # header
+#        ow.writerow(['COMID', 'Time', 'H', 'Q']) # header
+        ow.writerow(['COMID', 'H', 'Q']) # header
         for i in range(fccount):
-            ow.writerow([comidlist[i], timestr, Hfclist[i], Qfclist[i]])
+#            ow.writerow([comidlist[i], timestr, Hfclist[i], Qfclist[i]])
+            ow.writerow([comidlist[i], Hfclist[i], Qfclist[i]])
 
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "DONE"
     sys.stdout.flush()
@@ -162,31 +203,37 @@ comids = None # COMID list
 Qs = None # Q forecast list (discharge)
 h = None # hash table for Q forecast lookup, indexed by COMID (station id)
 
+# python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/hydroprop/hydroprop-fulltable.nc /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/hydroprop
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/HUC6 /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/hydroprop
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/yanliu/forecast/test
 if __name__ == '__main__':
-    tabledir = sys.argv[1] # HUC6 HAND root dir
+    hpinput = sys.argv[1] # HUC6 HAND root dir
     fcfile = sys.argv[2] # NOAA NWM forecast netcdf path
     odir = sys.argv[3] # output netcdf path, directory must exist
 
     timestr = readForecast(fcfile) # read forecast, set up hash table
 
-    # read dir list
-    wildcard = os.path.join(tabledir, '*')
-    dlist = glob.glob(wildcard)
     huclist = []
     tablelist = []
-    count = 0
-    for d in dlist:
-        if not os.path.isdir(d):
-            continue
-        hucid = os.path.basename(d)
-        csvfile = d+'/'+'hydroprop-fulltable-'+hucid+'.csv'
-        if not os.path.isfile(csvfile):
-            continue
-        tablelist += [ csvfile ]
-        huclist += [ hucid ]
-        count +=1
+    if os.path.isdir(hpinput):
+        tabledir = hpinput
+        # read dir list
+        wildcard = os.path.join(tabledir, '*')
+        dlist = glob.glob(wildcard)
+        count = 0
+        for d in dlist:
+            if not os.path.isdir(d):
+                continue
+            hucid = os.path.basename(d)
+            csvfile = d+'/'+'hydroprop-fulltable-'+hucid+'.csv'
+            if not os.path.isfile(csvfile):
+                continue
+            tablelist += [ csvfile ]
+            huclist += [ hucid ]
+            count +=1
+    else: # single netcdf file
+        tablelist += [hpinput]
+        count = 1
     print str(count) + " hydro property tables will be read."
     sys.stdout.flush()
 
