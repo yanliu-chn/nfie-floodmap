@@ -1,13 +1,9 @@
-import sys
-import os
-import time
-import getopt
-import glob
-import shutil
-import re
+import sys, os, string, time, re, getopt, glob, shutil, math
 import osr
 import netCDF4
 import numpy as np
+from osgeo import gdal
+from osgeo import ogr
 import pandas as pd
 import xarray as xr
 from datetime import datetime
@@ -17,6 +13,7 @@ import csv
 ## create flood forecast table for all the COMIDs on CONUS
 # input 1: the list of hydro property lookup table for each HUC6 code
 # input 2: NOAA NWM forecast data, one timestamp
+# input 3: NHDPlus MR geodb, for creating georeferenced anomaly shp files
 # output: an inundation table for all the COMIDs on CONUS as netcdf and csv
 
 # read input NOAA NWM netcdf file
@@ -35,6 +32,9 @@ def readForecast(in_nc = None):
     timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d_%H:%M:%S') # read
     #timestamp.replace(tzinfo=pytz.UTC) # set timezone 
     t = timestamp.strftime('%Y%m%d_%H%M%S') # reformat timestampe output
+    init_timestamp_str=global_attrs['model_initialization_time']
+    init_timestamp = datetime.strptime(init_timestamp_str, '%Y-%m-%d_%H:%M:%S') # read
+    init_t = init_timestamp.strftime('%Y%m%d_%H%M%S') # reformat timestampe output
 
     # create attr data for COMID and flowstream attr
     comids_ref = rootgrp.variables['station_id']
@@ -59,7 +59,7 @@ def readForecast(in_nc = None):
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + " Loaded " + str(len(comids)) + " stations"
     sys.stdout.flush()
 
-    return t
+    return { 'timestamp': t, 'init_timestamp': init_t}
 
 # interpolate H forecast from the static H and Q table dervied from HAND
 # assuming the ascending order to stage heights for a COMID in CSV table
@@ -98,10 +98,14 @@ def Hinterpolate(Qfc = 0.0, Hlist = [], Qlist = [], count = 0, comid = 0):
     return Hfc
 
 
-def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None, odir = None):
+def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights = 83, huclist = None, odir = None, nhddbpath = None):
     global comids
     global Qs
     global h
+    global comidlist 
+    global Qfclist
+    global Hfclist
+    global fccount
 
     comidlist = np.zeros(len(comids), dtype='int64')
     Hfclist = np.zeros(len(comids), dtype='float64')
@@ -164,6 +168,21 @@ def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None
             count += 1
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Read " + str(len(comids)) + " stations from NWM, " + str(catchcount) + " catchments from hydro table. " + str(missings) + " comids in hydro table but not in NWM. " + " generated " + str(fccount) + " forecasts"
     sys.stdout.flush()
+
+    # save forecast output
+    saveForecast(init_timestr, timestr, odir) 
+
+    # save anomaly shp files
+    if os.path.isdir(nhddbpath):
+        anomalyMethod='linearrate'
+#        anomalyMethod='lograte'
+        createAnomalyMap(anomalyMethod, anomalyThreshold = 2.5, filterThreshold = 3.703703, NHDDBPath = nhddbpath, NHDLayerName = 'Flowline', odir=odir)
+
+def saveForecast(init_timestr = None, timestr = None, odir = None):
+    global comidlist 
+    global Qfclist
+    global Hfclist
+    global fccount
     # save to netcdf
     xds = xr.Dataset({
         'COMID': (['index'], comidlist[:fccount]),
@@ -173,13 +192,14 @@ def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None
     })
     xds.attrs = {
         'Subject': 'Inundation table derived from HAND and NOAA NWM for CONUS',
+        'Initialization_Timestamp': init_timestr,
         'Timestamp': timestr,
         'Description': 'Inundation lookup table for all the COMIDs in CONUS through the aggregation of HUC6-level hydro property tables and NOAA NWM forecast netcdf on channel_rt'
     }
     xds['COMID'].attrs = { 'units': 'index', 'long_name': 'Catchment ID (COMID)'}
     xds['H'].attrs = { 'units': 'm', 'long_name': 'Inundation height forecast'}
     xds['Q'].attrs = { 'units': 'm3s-1', 'long_name': 'Inundation discharge forecast'}
-    ofilename = 'inun-hq-table-' + timestr
+    ofilename = 'inun-hq-table-at-' + init_timestr + '-for-' +  timestr
     ofilenetcdf = odir + '/' + ofilename + '.nc'
     ofilecsv = odir + '/' + ofilename + '.csv'
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Writing netcdf output " + ofilenetcdf 
@@ -197,21 +217,147 @@ def forecastH (timestr = None, tablelist = None, numHeights = 83, huclist = None
 
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "DONE"
     sys.stdout.flush()
+
+def createAnomalyMap(anomalyMethod='linearrate', anomalyThreshold = 2.5, filterThreshold = 3.703703, NHDDBPath = None, NHDLayerName = None, odir=None):
+    global comidlist 
+    global Qfclist
+    global Hfclist
+    global fccount
+    global h # reuse h; reset first
+    # create comid hash for forecast output
+    h = None
+    h = dict.fromkeys(comidlist)
+    for i in range(0, fccount):
+        h[comidlist[i]] = i
+
+    # open NHDPlus MR to scan each flowline only once
+    ds = gdal.OpenEx( NHDDBPath, gdal.OF_VECTOR | gdal.OF_READONLY)
+    if ds is None :
+        print "createAnomalyMap(): ERROR Open failed: " + str(NHDDBPath) + "\n"
+        sys.exit( 1 )
+    lyr = ds.GetLayerByName( NHDLayerName )
+    if lyr is None :
+        print "createAnomalyMap(): ERROR fetch layer: " + str(NHDLayerName) + "\n"
+        sys.exit( 1 )
+    lyr.ResetReading()
+    num_records = lyr.GetFeatureCount()
+    lyr_defn = lyr.GetLayerDefn()
+    srs = lyr.GetSpatialRef()
+    geomType = lyr.GetGeomType()
+    # get index of attributes to be extracted
+    fi_comid = lyr_defn.GetFieldIndex('COMID')
+    fdef_comid = lyr_defn.GetFieldDefn(fi_comid)
+    fi_huc = lyr_defn.GetFieldIndex('REACHCODE')
+    fdef_huc = lyr_defn.GetFieldDefn(fi_huc)
+    fi_meanflow = lyr_defn.GetFieldIndex('Q0001E')
+    fdef_meanflow = lyr_defn.GetFieldDefn(fi_meanflow)
+
+    # create output shp 
+    driverName = "ESRI Shapefile"
+    ofilename = 'anomalymap-at-' + init_timestr + '-for-' +  timestr
+    of = odir + '/' + ofilename + '.shp'
+    drv = gdal.GetDriverByName( driverName )
+    if drv is None:
+        print "createAnomalyMap(): ERROR %s driver not available.\n" % driverName
+        sys.exit( 1 )
+    ods = drv.Create( of, 0, 0, 0, gdal.GDT_Unknown )
+    if ods is None:
+        print "createAnomalyMap(): ERROR Creation of output file failed: "+of+ "\n"
+        sys.exit( 1 )
+    olyr = ods.CreateLayer('anomalymap', srs, geomType)
+    if olyr is None:
+        print "createAnomalyMap(): ERROR Layer creation failed: anomalymap "+ "\n"
+        sys.exit( 1 )
+    # create fields
+    ofdef_comid = ogr.FieldDefn( "COMID", ogr.OFTInteger)
+    ofdef_H = ogr.FieldDefn( "H", ogr.OFTReal)
+    ofdef_Q = ogr.FieldDefn( "Q", ogr.OFTReal)
+    ofdef_rating = ogr.FieldDefn( "RATING", ogr.OFTReal)
+    if olyr.CreateField ( ofdef_comid ) != 0 or olyr.CreateField ( fdef_huc ) != 0 or olyr.CreateField ( ofdef_Q ) != 0 or olyr.CreateField ( fdef_meanflow ) != 0 or olyr.CreateField ( ofdef_rating ) != 0 or olyr.CreateField ( ofdef_H ) != 0 :
+        print "createAnomalyMap(): ERROR Creating fields in output .\n"
+        sys.exit( 1 )
+    # get integer index to speed up the loops
+    olyr_defn = olyr.GetLayerDefn()
+    ofi_comid = olyr_defn.GetFieldIndex('COMID')
+    ofi_huc = olyr_defn.GetFieldIndex('REACHCODE')
+    ofi_Q = olyr_defn.GetFieldIndex('Q')
+    ofi_meanflow = olyr_defn.GetFieldIndex('Q0001E')
+    ofi_rating = olyr_defn.GetFieldIndex('RATING')
+    ofi_H = olyr_defn.GetFieldIndex('H')
+
+    count = 0 
+    for f in lyr: # for each row. in NHDPlus MR, it's 2.67m
+        comid = f.GetFieldAsInteger(fi_comid)
+        if not comid in h: # comid has no forecast record
+            continue
+        i = h[comid] # index of this comid in Qfclist and Hfclist
+        Qfc = Qfclist[i]
+        meanflow = f.GetFieldAsDouble(fi_meanflow) 
+        rate = calcAnomalyRate(Qfc, meanflow, anomalyMethod, anomalyThreshold, filterThreshold)
+        if rate < 0.00000001: # filter by rate diff
+            continue
+        # it is an anomaly, get it
+        Hfc = Hfclist[i]
+        huc = f.GetFieldAsString(fi_huc)
+        # create feature and write to output
+        fc = ogr.Feature( olyr_defn )
+        fc.SetField(ofi_comid, comid)
+        fc.SetField(ofi_huc, huc)
+        fc.SetField(ofi_Q, Qfc)
+        fc.SetField(ofi_meanflow, meanflow)
+        fc.SetField(ofi_rating, rate)
+        fc.SetField(ofi_H, Hfc);
+        # create geom field
+        geom = f.GetGeometryRef()
+        fc.SetGeometry( geom ) # this method makes a copy of geom
+        if olyr.CreateFeature( fc ) != 0:
+            print "createAnomalyMap(): ERROR Creating new feature in output for COMID=" + str(comid) + " .\n"
+            sys.exit( 1 )
+        fc.Destroy()
+        count += 1
+    ds = None
+    ods = None 
+
+    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : createAnomalyMap ") + " generated " + str(count) + " anomalies from " + str(fccount) + " forecast reaches"
         
+def calcAnomalyRate(Q = 0.0, meanflow = 0.00000001, anomalyMethod='linearrate', anomalyThreshold = 2.5, filterThreshold = 3.703703):
+    #filterThreshold = 100.0 / 27 # 100cfs; 100/27 cms
+    f2m = 3.28084 * 3.28084 * 3.28084
+    meanflow = meanflow / f2m
+    if (Q - meanflow  < filterThreshold): # absolute change is too small
+        return 0
+    if anomalyMethod == 'linearrate': # Q / Qmean > 2.5
+        return Q - meanflow * anomalyThreshold
+    else: # lograte: Q > Qmean^2.5
+        #return Q - meanflow * meanflow * math.sqrt(meanflow) 
+        return Q - math.pow(meanflow, anomalyThreshold)
+
 # global variables
-comids = None # COMID list
-Qs = None # Q forecast list (discharge)
+comids = None # COMID list from NWM forecast table
+Qs = None # Q forecast list (discharge) from NWM
 h = None # hash table for Q forecast lookup, indexed by COMID (station id)
+comidlist = None # COMID list, intersection of NWM forecast and hydroprop
+Qfclist = None # Q forecast
+Hfclist = None # H forecast
+fccount = 0 # length of the above three arrays
 
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/hydroprop/hydroprop-fulltable.nc /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/hydroprop
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/HUC6 /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/hydroprop
+## forecast table test:
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/yanliu/forecast/test
+## anomaly map shp test:
+# python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t10z.short_range.channel_rt.f010.conus.nc /gpfs_scratch/nfie/users/yanliu/forecast/test/anomaly /gpfs_scratch/usgs/nhd/NFIEGeoNational.gdb
 if __name__ == '__main__':
-    hpinput = sys.argv[1] # HUC6 HAND root dir
+    hpinput = sys.argv[1] # hydro property file root dir
     fcfile = sys.argv[2] # NOAA NWM forecast netcdf path
     odir = sys.argv[3] # output netcdf path, directory must exist
+    nhddbpath = ''
+    if len(sys.argv) > 4:
+        nhddbpath = sys.argv[4] # nhdplus mr filegdb path
 
-    timestr = readForecast(fcfile) # read forecast, set up hash table
+    tobj = readForecast(fcfile) # read forecast, set up hash table
+    timestr = tobj['timestamp']
+    init_timestr = tobj['init_timestamp']
 
     huclist = []
     tablelist = []
@@ -237,7 +383,7 @@ if __name__ == '__main__':
     print str(count) + " hydro property tables will be read."
     sys.stdout.flush()
 
-    forecastH(timestr, tablelist, 83, huclist, odir)
+    forecastH(init_timestr, timestr, tablelist, 83, huclist, odir, nhddbpath)
 
 
 
