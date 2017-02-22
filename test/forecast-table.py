@@ -173,7 +173,7 @@ def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights
     saveForecast(init_timestr, timestr, odir) 
 
     # save anomaly shp files
-    if os.path.isdir(nhddbpath):
+    if not nhddbpath is None and os.path.isdir(nhddbpath):
         anomalyMethod='linearrate'
 #        anomalyMethod='lograte'
         createAnomalyMap(anomalyMethod, anomalyThreshold = 2.5, filterThreshold = 3.703703, NHDDBPath = nhddbpath, NHDLayerName = 'Flowline', odir=odir)
@@ -341,12 +341,17 @@ Qfclist = None # Q forecast
 Hfclist = None # H forecast
 fccount = 0 # length of the above three arrays
 
+## software environment:
+## . /gpfs_scratch/nfie/users/yanliu/forecast/softenv
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/hydroprop/hydroprop-fulltable.nc /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/hydroprop
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/HUC6 /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/hydroprop
 ## forecast table test:
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t00z.short_range.channel_rt.f001.conus.nc /gpfs_scratch/nfie/users/yanliu/forecast/test
 ## anomaly map shp test:
 # python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test /gpfs_scratch/nfie/users/yanliu/forecast/nwm.t10z.short_range.channel_rt.f010.conus.nc /gpfs_scratch/nfie/users/yanliu/forecast/test/anomaly /gpfs_scratch/usgs/nhd/NFIEGeoNational.gdb
+## worst-scenario anomaly test:
+# python /projects/nfie/nfie-floodmap/test/forecast-nwm-worst.py /projects/nfie/houston_20170119 "nwm.t10z.short_range.channel_rt.f001.conus.nc nwm.t10z.short_range.channel_rt.f002.conus.nc nwm.t10z.short_range.channel_rt.f003.conus.nc nwm.t10z.short_range.channel_rt.f004.conus.nc nwm.t10z.short_range.channel_rt.f005.conus.nc nwm.t10z.short_range.channel_rt.f006.conus.nc nwm.t10z.short_range.channel_rt.f007.conus.nc nwm.t10z.short_range.channel_rt.f008.conus.nc nwm.t10z.short_range.channel_rt.f009.conus.nc nwm.t10z.short_range.channel_rt.f010.conus.nc nwm.t10z.short_range.channel_rt.f011.conus.nc nwm.t10z.short_range.channel_rt.f012.conus.nc nwm.t10z.short_range.channel_rt.f013.conus.nc nwm.t10z.short_range.channel_rt.f014.conus.nc nwm.t10z.short_range.channel_rt.f015.conus.nc" ./20170119.nwm.t10z.short_range.channel_rt.worstscenario.conus.nc
+# python /projects/nfie/nfie-floodmap/test/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test ./20170119.nwm.t10z.short_range.channel_rt.worstscenario.conus.nc  /gpfs_scratch/nfie/users/yanliu/forecast/test/anomaly/worstscenario /gpfs_scratch/usgs/nhd/NFIEGeoNational.gdb
 if __name__ == '__main__':
     hpinput = sys.argv[1] # hydro property file root dir
     fcfile = sys.argv[2] # NOAA NWM forecast netcdf path
