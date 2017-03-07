@@ -97,6 +97,19 @@ def Hinterpolate(Qfc = 0.0, Hlist = [], Qlist = [], count = 0, comid = 0):
         print "DEBUG: irregular Hfc: comid=" + str(comid) + " Hfc=" + str(Hfc) + " Qfc=" + str(Qfc) + " Q1=" + str(Q1) + " Q2=" + str(Q2) + " H1=" +str(Hlist[Q1i]) + " H2=" +str(Hlist[Q2i]) + " Q1i=" + str(Q1i) + " Q2i=" + str(Q2i)
     return Hfc
 
+def updateH(comid = 0, fccount = 0, count = 0, numHeights = 83, h = None, Qs = None, Hlist = None, Qlist = None, comidlist = None, Hfclist = None, Qfclist = None):
+    if count != numHeights:
+        print "Warning: COMID " + str(comid) + " has <" + str(numHeights) + " rows on hydroprop table"
+    j = h[comid]
+    Qfc = Qs[j]
+    if Qfc > 0.0:
+        Hfc = Hinterpolate(Qfc, Hlist, Qlist, count, comid)
+        if Hfc > 0.0:
+            comidlist[fccount] = comid
+            Hfclist[fccount] = Hfc
+            Qfclist[fccount] = Qfc
+            return 1
+    return 0
 
 def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights = 83, huclist = None, odir = None, nhddbpath = None):
     global comids
@@ -112,6 +125,7 @@ def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights
     Qfclist = np.zeros(len(comids), dtype='float64')
     fccount = 0
     missings = 0 # in hydro table but not in station hash
+    nulls = 0 # null values that are not interpolated
     catchcount = 0 # count of catchments in hydro table
     for i in range(0, len(tablelist)): # scan each HUC's hydro prop table
         hpfile = tablelist[i]
@@ -145,20 +159,14 @@ def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights
             if not catchid in h: # hydro table doesn't have info for this comid
                 missings += 1
                 continue
-            if comid is None:
+            if comid is None: # first iteration in the loop
                 comid = catchid
             if comid != catchid : # time to interpolate
-                if count < numHeights:
-                    print "Warning: COMID " + str(comid) + " has <" + str(numHeights) + " rows on hydroprop table"
-                j = h[comid]
-                Qfc = Qs[j]
-                if Qfc > 0.0:
-                    Hfc = Hinterpolate(Qfc, Hlist, Qlist, count, comid)
-                    if Hfc > 0.0:
-                        comidlist[fccount] = comid
-                        Hfclist[fccount] = Hfc
-                        Qfclist[fccount] = Qfc
-                        fccount += 1
+                updated = updateH(comid, fccount, count, numHeights, h, Qs, Hlist, Qlist, comidlist, Hfclist, Qfclist)
+                if updated == 1:
+                    fccount += 1
+                else:
+                    nulls += 1
                 count = 0
                 comid = catchid
                 Hlist.fill(0)
@@ -166,7 +174,14 @@ def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights
             Hlist[count] = colH[i]
             Qlist[count] = colQ[i]
             count += 1
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Read " + str(len(comids)) + " stations from NWM, " + str(catchcount) + " catchments from hydro table. " + str(missings) + " comids in hydro table but not in NWM. " + " generated " + str(fccount) + " forecasts"
+        # update the last comid
+        if comid > 0:
+            updated = updateH(comid, fccount, count, numHeights, h, Qs, Hlist, Qlist, comidlist, Hfclist, Qfclist)
+            if updated == 1:
+                fccount += 1
+            else:
+                nulls += 1
+    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Read " + str(len(comids)) + " stations from NWM, " + str(catchcount) + " catchments from hydro table. " + str(missings / numHeights) + " comids in hydro table but not in NWM. " + str(nulls) + " comids null and skipped. " + str(fccount) + " forecasts generated."
     sys.stdout.flush()
 
     # save forecast output
