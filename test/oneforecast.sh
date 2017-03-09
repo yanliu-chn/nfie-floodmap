@@ -3,8 +3,9 @@ umask 002
 
 # calc inundation forecast for one single NWM short-range forecast
 
-srdir=/gpfs_scratch/nfie/users/yanliu/forecast/houston20170118
 sdir=/projects/nfie/nfie-floodmap/test
+#srdir=/gpfs_scratch/nfie/users/yanliu/forecast/houston20170118
+srdir=$sdir
 ##url ex: http://nomads.ncep.noaa.gov/pub/data/nccf/com/nwm/prod/nwm.20170118/short_range/nwm.t23z.short_range.channel_rt.f001.conus.nc.gz
 ##url example: http://thredds.hydroshare.org/thredds/fileServer/nwm/nomads/nwm.20170120/short_range/nwm.t14z.short_range.channel_rt.f015.conus.nc.gz
 day=$1 # ex: 20170118
@@ -21,6 +22,7 @@ fcdir=/projects/nfie/nwm-forecast/$day
 module purge
 module load parallel gdal2-stack
 
+t1=`date +%s`
 ## download data
 echo "+================================+"
 echo "+===Downloading NWM Forecast=====+"
@@ -36,7 +38,11 @@ for fchour in f001 f002 f003 f004 f005 f006 f007 f008 f009 f010 f011 f012 f013 f
 	fi
 	fcfilelist="$fcfilelist $fcfile"
 done
+t2=`date +%s`
+echo "****TIME DOWNLOAD `expr $t2 \- $t1` seconds"
 
+t1=`date +%s`
+echo "****TIME DOWNLOAD `expr $t2 \- $t1` seconds"
 timestamplist=""
 for fcfile in $fcfilelist; do
 	init_timestamp=`ncdump -h $fcdir/$fcfile |grep model_initialization_time |awk -F'"' '{print $2}'|sed -e "s/\-//g" -e "s/://g"`
@@ -46,13 +52,17 @@ for fcfile in $fcfilelist; do
 done
 
 ## calc worst scenario anomaly map
-. `dirname $0`/../softenv
+. $sdir/softenv.forecast
 fcworst="worstscenario.$day.${fcgen_tag}.$range.$fctype.conus.nc"
 [ ! -f $fcdir/$fcworst ] && python $sdir/forecast-nwm-worst.py $fcdir "$fcfilelist" $fcdir/$fcworst
-fcfilelist="$fcfilelist $fcworst"
+#fcfilelist="$fcfilelist $fcworst" #TODO: uncoment after outfile name is decided
+fcfilelist="$fcfilelist"
 ## calc forecast table
 $srdir/forecast-table.sh $fcdir "$fcfilelist" "$day"
+t2=`date +%s`
+echo "****TIME FCTABLE `expr $t2 \- $t1` seconds"
 
+t1=`date +%s`
 ## create inun maps for specified HUC6 units
 hucidlist="120401 120402 120903 120904 120701 121001 121004" # houston
 #hucidlist="180701 180702 180703 181001 181002" # san diego
@@ -62,18 +72,26 @@ hucidlist="120401 120402 120903 120904 120701 121001 121004" # houston
 hucidfile=/tmp/hucidfile.$RANDOM
 echo "$hucidlist" > $hucidfile
 fctabledir=/gpfs_scratch/nfie/users/hydroprop/$day
-fctablefilelist="$fcworst"
-#for f in `ls $fctabledir/inun-hq-table-at-${init_timestamp}-for-*.nc`; do
-#	fctablefilelist="$fctablefilelist `basename $f`"
-#done
+#fctablefilelist="$fcworst"
+for f in `ls $fctabledir/inun-hq-table-at-${init_timestamp}-for-*.nc`; do
+	fctablefilelist="$fctablefilelist `basename $f`"
+done
 ddir=/gpfs_scratch/nfie/users/HUC6
-maprootdir=/gpfs_scratch/nfie/users/inunmap/HUC6
-$srdir/forecast-map-batch.sh $hucidfile $fctabledir "$fctablefilelist" $ddir $maprootdir
+maprootdir=/gpfs_scratch/nfie/users/inunmap
+$srdir/forecast-map-batch.sh $hucidfile $fctabledir "$fctablefilelist" $ddir $maprootdir/HUC6
+t2=`date +%s`
+echo "****TIME FCMAP `expr $t2 \- $t1` seconds"
 
+t1=`date +%s`
 ## create TMS tiles for specified HUC6 units
-$srdir/huc6tms-inunmap-epsg3857.sh $hucidfile "$timestamplist" $init_timestamp
+$srdir/huc6tms-inunmap-epsg3857.sh $hucidfile "$timestamplist" $init_timestamp $maprootdir
+t2=`date +%s`
+echo "****TIME TMSHUC `expr $t2 \- $t1` seconds"
 
+t1=`date +%s`
 ## merge tiles
-$srdir/tmsmerge-inunmaptest.sh "$timestamplist" $init_timestamp
+$srdir/tmsmerge-inunmaptest.sh "$timestamplist" $init_timestamp $maprootdir
+t2=`date +%s`
+echo "****TIME TMSCONUS `expr $t2 \- $t1` seconds"
 
 ## display output info

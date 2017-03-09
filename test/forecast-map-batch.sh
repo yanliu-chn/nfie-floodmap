@@ -52,8 +52,12 @@ timestamp=`echo "$fcfile"|awk -F'-' '{print $NF}'|awk -F. '{print $1}'`
 mapfile=$mapdir/${hucid}inunmap-at-${init_timestamp}-for-${timestamp}.tif
 t1=`date +%s`
 taudem2=/gpfs_scratch/taudem/TauDEM-CatchHydroGeo
-[ -f $mapfile ] && continue
-echo "mpirun -np $np $taudem2/inunmap -hand $wdir/${n}hand.tif -catch $wdir/${n}catchhuc.tif -mask $wdir/${n}waterbodymask.tif -forecast $fcdir/$fcfile -mapfile $mapfile" >>$cmdfile
+hydrotable=/gpfs_scratch/nfie/users/hydroprop/hydroprop-fulltable.nc
+[ -f $mapfile ] && echo "inunmap-batch: SKIP $mapfile" && continue
+# without 1ft pits waterbody mask
+#echo "mpirun -np $np $taudem2/inunmap -hand $wdir/${n}hand.tif -catch $wdir/${n}catchhuc.tif -mask $wdir/${n}waterbodymask.tif -forecast $fcdir/$fcfile -mapfile $mapfile" >>$cmdfile
+# with 1ft pits waterbody mask
+echo "mpirun -np $np $taudem2/inunmap -hand $wdir/${n}hand.tif -catch $wdir/${n}catchhuc.tif -mask $wdir/${n}waterbodymask.tif -forecast $fcdir/$fcfile -maskpits -hydrotable $hydrotable  -mapfile $mapfile" >>$cmdfile
 let "jcount+=1"
 
 done # fcfilelist

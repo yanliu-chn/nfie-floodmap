@@ -1,5 +1,6 @@
 #!/bin/bash
 rdir=/gpfs_scratch/nfie/users/inunmap/TMS
+[ ! -z "$4" ] && rdir="$4/TMS"
 
 echo "+================================+"
 echo "+===Merging HUC6 TMS Tiles  =====+"

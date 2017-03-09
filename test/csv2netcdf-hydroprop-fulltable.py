@@ -72,6 +72,7 @@ def merge2netcdf(ddir = None, of = None):
     xds['Volume'].attrs = { 'units': 'm3', 'long_name': 'Volume'}
     xds['SLOPE'].attrs = { 'units': 'degree', 'long_name': 'Slope of the river line segment'}
     xds['LENGTHKM'].attrs = { 'units': 'km', 'long_name': 'Length of the river line segment'}
+    xds['AREASQKM'].attrs = { 'units': 'km2', 'long_name': 'Area of the reach catchment'}
     xds['Roughness'].attrs = { 'units': 'Manning param', 'long_name': 'Roughness, manning param v=0.05'}
     xds['TopWidth'].attrs = { 'units': 'm', 'long_name': 'Top Width'}
     xds['WettedPerimeter'].attrs = { 'units': 'm', 'long_name': 'Wetted Perimeter'}

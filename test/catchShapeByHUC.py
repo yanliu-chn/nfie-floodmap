@@ -21,6 +21,8 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     global keys
     global slopes
     global linelens
+    global areasqkms
+
     if flowHash is None or len(flowHash) <= 0:
         print "queryCatchByHash(): ERROR Flowline HASH is empty. \n"
         sys.exit( 1 )
@@ -113,6 +115,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
             comid_index = flowHash[comid]
             fc.SetField(ofi_slope, slopes[comid_index])
             fc.SetField(ofi_linelen, linelens[comid_index])
+            areasqkms[comid_index] = areasqkm
             # create geom field
             geom = f.GetGeometryRef()
             fc.SetGeometry( geom ) # this method makes a copy of geom
@@ -131,7 +134,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     fcomid = open(comidfile, "w")
     fcomid.write(str(count) + "\n") # first row is count
     for i in range(0, count):
-        fcomid.write(str(keys[comid_index_list[i]]) + " " + str(slopes[comid_index_list[i]]) + " " + str(linelens[comid_index_list[i]]) + "\n") # each row is comid
+        fcomid.write(str(keys[comid_index_list[i]]) + " " + str(slopes[comid_index_list[i]]) + " " + str(linelens[comid_index_list[i]]) +  " " + str(areasqkms[comid_index_list[i]]) + "\n") # each row is comid
     fcomid.close()
     ds = None
     ods = None
@@ -142,6 +145,7 @@ def buildFlowlineHash(flowShpFile = None, lyrName = None, keyFieldName = None):
     global keys
     global slopes
     global linelens
+    global areasqkms
     # open shape file
     ds = gdal.OpenEx( flowShpFile, gdal.OF_VECTOR | gdal.OF_READONLY)
     if ds is None :
@@ -165,6 +169,7 @@ def buildFlowlineHash(flowShpFile = None, lyrName = None, keyFieldName = None):
     keys = np.zeros(num_records, dtype='int32')
     slopes = np.zeros(num_records, dtype='float64')
     linelens = np.zeros(num_records, dtype='float64')
+    areasqkms = np.zeros(num_records, dtype='float64') # catchment attr, not flowline, just mem alloc here
     i = 0
     for f in lyr:
         keys[i] = f.GetFieldAsInteger(fi_comid)
@@ -187,6 +192,7 @@ def buildFlowlineHash(flowShpFile = None, lyrName = None, keyFieldName = None):
 keys=None
 slopes=None
 linelens=None
+areasqkms=None
 
 # usage: 
 # module purge

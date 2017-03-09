@@ -12,7 +12,7 @@ do
     echo "#PBS -N CATCH$hucid" >> $qsubfile
     echo "#PBS -e $logdir/$hucid.stderr" >> $qsubfile
     echo "#PBS -o $logdir/$hucid.stdout" >> $qsubfile
-    echo "#PBS -l nodes=3:ppn=20,walltime=3:00:00" >> $qsubfile
+    echo "#PBS -l nodes=1:ppn=20,walltime=12:00:00" >> $qsubfile
     echo "#PBS -M yanliu@ncsa.illinois.edu" >> $qsubfile
     echo "#PBS -m be" >> $qsubfile
     echo "$sdir/catchmentmaskbyhuc.sh $hucid $ddir/$hucid" >> $qsubfile

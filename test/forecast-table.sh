@@ -4,7 +4,8 @@ fcdir=$1
 [ -z $fcdir ] && fcdir=/projects/nfie/houston_20170118
 fcfilelist="$2"
 day="$3"
-nhddbpath=/gpfs_scratch/usgs/nhd/NFIEGeoNational.gdb
+
+#nhddbpath=/gpfs_scratch/usgs/nhd/NFIEGeoNational.gdb #TODO: uncomment if to get anomaly shapes
 
 echo "+================================+"
 echo "+===Computing Forecast Table=====+"

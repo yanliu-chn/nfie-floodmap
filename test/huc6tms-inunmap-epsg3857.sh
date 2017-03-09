@@ -33,6 +33,7 @@ init_timestamp="$3"
 huc=HUC6
 prj="mercator"
 rdir=/gpfs_scratch/nfie/users/inunmap
+[ ! -z "$4" ] && rdir="$4"
 sdir=$rdir/$huc
 jdir=/gpfs_scratch/nfie/gnuparallel
 colorfile=/projects/nfie/nfie-floodmap/test/INUNMAP-blues.clr
@@ -46,7 +47,7 @@ for timestamp in $timestamplist; do
 ddir=$rdir/TMS/${huc}-$prj-at-${init_timestamp}-for-$timestamp
 [ ! -d $ddir ] && mkdir -p $ddir
 
-# mor each unit, use gdaldem to colorize and use gdal2tiles to create TMS
+# for each unit, use gdaldem to colorize and use gdal2tiles to create TMS
 for hucid in $hucidlist; do
     inunmap=$sdir/$hucid/${hucid}inunmap-at-${init_timestamp}-for-${timestamp}.tif
     [ ! -f $inunmap ] && echo "=HUC=skip $hucid INUNMAP N/A, skip. $inunmap" && continue

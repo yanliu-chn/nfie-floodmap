@@ -16,7 +16,8 @@ n=$hucid
 hucquerypre=`echo $hucid | cut -b 1-8`
 wdir=$2
 stageconf=$3
-np=20 # for no reason, after module purge, PBS_NP becomes 1
+#np=20 # for no reason, after module purge, PBS_NP becomes 1
+np=1 # for no reason, after module purge, PBS_NP becomes 1
 [ -z "$stageconf" ] && stageconf=$sdir/stage.txt
 [ ! -f $stageconf ] && echo "ERROR: stage config not exist $stageconf" && exit 1
 echo "using stage config $stageconf"
@@ -57,10 +58,13 @@ module purge
 module load MPICH gdal2-stack GCC/4.9.2-binutils-2.25 python/2.7.10 pythonlibs/2.7.10
 echo "mpirun -np $np $taudem2/catchhydrogeo -hand $wdir/${n}dd.tif -catch $wdir/${n}catchmask.tif -catchlist $wdir/${n}_comid.txt -slp $wdir/${n}slp.tif -h $stageconf -table $wdir/hydroprop-basetable-${n}.csv"
 [ ! -f $wdir/hydroprop-basetable-${n}.csv ] && mpirun -np $np $taudem2/catchhydrogeo -hand $wdir/${n}dd.tif -catch $wdir/${n}catchmask.tif -catchlist $wdir/${n}_comid.txt -slp $wdir/${n}slp.tif -h $stageconf -table $wdir/hydroprop-basetable-${n}.csv
+t2=`date +%s`
+echo "TIME hydropropbasic `expr $t2 \- $t1`"
 ## addon hydro properties 
+t1=`date +%s`
 echo "python $sdir/hydraulic_property_postprocess.py $wdir/hydroprop-basetable-${n}.csv 0.05 $wdir/hydroprop-fulltable-${n}.csv"
 [ ! -f $wdir/hydroprop-fulltable-${n}.csv ] && python $sdir/hydraulic_property_postprocess.py $wdir/hydroprop-basetable-${n}.csv 0.05 $wdir/hydroprop-fulltable-${n}.csv
 t2=`date +%s`
-echo "TIME hydroprop `expr $t2 \- $t1`"
+echo "TIME hydropropaddon `expr $t2 \- $t1`"
 
 
