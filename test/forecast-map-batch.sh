@@ -55,9 +55,9 @@ taudem2=/gpfs_scratch/taudem/TauDEM-CatchHydroGeo
 hydrotable=/gpfs_scratch/nfie/users/hydroprop/hydroprop-fulltable.nc
 [ -f $mapfile ] && echo "inunmap-batch: SKIP $mapfile" && continue
 # without 1ft pits waterbody mask
-#echo "mpirun -np $np $taudem2/inunmap -hand $wdir/${n}hand.tif -catch $wdir/${n}catchhuc.tif -mask $wdir/${n}waterbodymask.tif -forecast $fcdir/$fcfile -mapfile $mapfile" >>$cmdfile
+echo "mpirun -np $np $taudem2/inunmap -hand $wdir/${n}hand.tif -catch $wdir/${n}catchhuc.tif -mask $wdir/${n}waterbodymask.tif -forecast $fcdir/$fcfile -mapfile $mapfile" >>$cmdfile
 # with 1ft pits waterbody mask
-echo "mpirun -np $np $taudem2/inunmap -hand $wdir/${n}hand.tif -catch $wdir/${n}catchhuc.tif -mask $wdir/${n}waterbodymask.tif -forecast $fcdir/$fcfile -maskpits -hydrotable $hydrotable  -mapfile $mapfile" >>$cmdfile
+#echo "mpirun -np $np $taudem2/inunmap -hand $wdir/${n}hand.tif -catch $wdir/${n}catchhuc.tif -mask $wdir/${n}waterbodymask.tif -forecast $fcdir/$fcfile -maskpits -hydrotable $hydrotable  -mapfile $mapfile" >>$cmdfile
 let "jcount+=1"
 
 done # fcfilelist
