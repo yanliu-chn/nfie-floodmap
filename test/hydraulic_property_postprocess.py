@@ -1,3 +1,8 @@
+# calculate extended hydraulic properties from the basic properties
+# derived from CatchHydroGeo
+# Yan Y. Liu <yanliu@illinois.edu>
+# 10/31/2016
+
 import pandas as pd
 import sys
 

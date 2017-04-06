@@ -1,3 +1,7 @@
+# aggregate HUC6 unit level hydraulic property table files (netcdf) to CONUS
+# Yan Y. Liu <yanliu@illinois.edu>
+# 10/31/2016
+
 import sys
 import os
 import time

@@ -1,5 +1,6 @@
 #!/bin/bash
 # run all on in a single job
+# Yan Y. Liu <yanliu@illinois.edu>, 01/03/2017
 
 sdir=/projects/nfie/nfie-floodmap/test/HUC6-inunmap-scripts
 ldir=/projects/nfie/nfie-floodmap/test/HUC6-inunmap-logs

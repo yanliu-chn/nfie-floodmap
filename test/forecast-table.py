@@ -1,3 +1,11 @@
+## create flood forecast table for all the COMIDs on CONUS
+# Yan Y. Liu <yanliu@illinois.edu>
+# 10/31/2016
+# input 1: the list of hydro property lookup table for each HUC6 code
+# input 2: NOAA NWM forecast data, one timestamp
+# input 3: NHDPlus MR geodb, for creating georeferenced anomaly shp files
+# output: an inundation table for all the COMIDs on CONUS as netcdf and csv
+
 import sys, os, string, time, re, getopt, glob, shutil, math
 import osr
 import netCDF4
@@ -9,12 +17,6 @@ import xarray as xr
 from datetime import datetime
 import csv
 #import pytz
-
-## create flood forecast table for all the COMIDs on CONUS
-# input 1: the list of hydro property lookup table for each HUC6 code
-# input 2: NOAA NWM forecast data, one timestamp
-# input 3: NHDPlus MR geodb, for creating georeferenced anomaly shp files
-# output: an inundation table for all the COMIDs on CONUS as netcdf and csv
 
 # read input NOAA NWM netcdf file
 def readForecast(in_nc = None):

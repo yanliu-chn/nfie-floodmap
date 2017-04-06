@@ -1,5 +1,6 @@
 #!/bin/bash
 # run all on in a single job
+# Yan Y. Liu <yanliu@illinois.edu>, 10/30/2016
 
 sdir=/projects/nfie/nfie-floodmap/test/HUC6-catchmentmask-scripts
 ldir=/projects/nfie/nfie-floodmap/test/HUC6-catchmentmask-logs

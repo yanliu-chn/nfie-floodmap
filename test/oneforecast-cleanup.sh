@@ -1,4 +1,7 @@
 #!/bin/bash
+# clean up oneforecast data.
+# Yan Y. Liu <yanliu@illinois.edu>
+# 02/07/2017
 if [ $# -ne 6 ]; then
 	echo -e "## clean fcnc\tfcmap\ttmshuc\ttmsconus"
 	echo -e "day time 1|0\t1|0\t1|0\t1|0"

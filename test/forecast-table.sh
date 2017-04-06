@@ -1,5 +1,7 @@
 #!/bin/bash
-
+# use GNU parallel to do batch processing of forecast table computation
+# Yan Y. Liu <yanliu@illinois.edu>
+# 10/31/2016
 fcdir=$1
 [ -z $fcdir ] && fcdir=/projects/nfie/houston_20170118
 fcfilelist="$2"
@@ -46,8 +48,9 @@ for fcfile in $fcfilelist; do
 	# skip if exists
 	[ -f "$odir/${fctablename}.nc" ] && continue
 	#TODO: uncomment to calc for the nation
-	#echo "python $sdir/forecast-table.py $ddir/hydroprop-fulltable.nc $fcdir/$fcfile $odir $nhddbpath " >>$cmdfile
-	echo "python $sdir/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test $fcdir/$fcfile $odir $nhddbpath " >>$cmdfile
+	echo "python $sdir/forecast-table.py $ddir/hydroprop-fulltable.nc $fcdir/$fcfile $odir $nhddbpath " >>$cmdfile
+	#TODO: uncomment to calc for houston
+	#echo "python $sdir/forecast-table.py /gpfs_scratch/nfie/users/yanliu/forecast/test $fcdir/$fcfile $odir $nhddbpath " >>$cmdfile
 	echo "Adding ${fctablename}.nc ... " 
 	let "jcount+=1"
 done

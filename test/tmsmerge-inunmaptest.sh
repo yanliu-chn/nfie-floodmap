@@ -1,4 +1,8 @@
 #!/bin/bash
+# merge HUC6 level TMS tiles of inundation maps into CONUS level
+# Yan Y. Liu <yanliu@illinois.edu>
+# 02/07/2017
+
 rdir=/gpfs_scratch/nfie/users/inunmap/TMS
 [ ! -z "$4" ] && rdir="$4/TMS"
 

@@ -1,4 +1,6 @@
 #!/bin/bash
+# create job submission scripts for forecast map computation on all HUC6 units 
+# Yan Y. Liu <yanliu@illinois.edu>, 01/03/2017
 qsubdir=/projects/nfie/nfie-floodmap/test/HUC6-inunmap-scripts
 [ ! -d $qsubdir ] && mkdir -p $qsubdir && setfacl -m u:gisolve:rwx $qsubdir
 logdir=/projects/nfie/nfie-floodmap/test/HUC6-inunmap-logs

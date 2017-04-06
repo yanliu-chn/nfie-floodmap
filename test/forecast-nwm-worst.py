@@ -1,3 +1,6 @@
+# create worst scenario NWM channel_rt forecast netcdf from NWM forecasts
+# Yan Y. Liu <yanliu@illinois.edu>
+# 02/02/2017
 import sys, os, string, time, re, getopt, glob, shutil, math
 import osr
 import netCDF4

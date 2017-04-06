@@ -1,4 +1,6 @@
 #!/bin/bash
+# hydraulic property table calc: job submission at HUC6 level
+# Yan Y. Liu <yanliu@illinois.edu>, 10/30/2016
 qsubdir=/projects/nfie/nfie-floodmap/test/HUC6-catchmentmask-scripts
 logdir=/projects/nfie/nfie-floodmap/test/HUC6-catchmentmask-logs
 sdir=/projects/nfie/nfie-floodmap/test

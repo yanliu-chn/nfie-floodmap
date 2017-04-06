@@ -1,4 +1,6 @@
 #!/bin/bash
+# Clean up hydraulic property table files in all HUC6 units
+# Yan Y. Liu <yanliu@illinois.edu>, 10/30/2016
 rdir=/gpfs_scratch/nfie/users/HUC6
 for f in `ls $rdir/*.zip`
 do

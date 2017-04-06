@@ -1,3 +1,7 @@
+# merge TMS tile images using ImageMagick
+# Yan Y. Liu <yanliu@illinois.edu>
+# 02/07/2017
+
 import sys
 import os
 import time
