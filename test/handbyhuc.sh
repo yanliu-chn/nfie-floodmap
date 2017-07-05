@@ -30,7 +30,8 @@ np="$3"
 [ -z "$np" ] && np=$PBS_NP && [ -z "$np" ] && np=20
 
 echo "[`date`] Running HAND workflow for HUC$hucid($n) using $np cores..."
-wdir=/gpfs_scratch/nfie/${n}
+#wdir=/gpfs_scratch/nfie/${n}
+wdir=`pwd`/${n}
 cdir=`pwd`
 mkdir -p $wdir
 cd $wdir

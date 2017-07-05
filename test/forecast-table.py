@@ -26,7 +26,8 @@ def readForecast(in_nc = None):
     # open netcdf file
     rootgrp = netCDF4.Dataset(in_nc, 'r')
     intype='channel_rt'
-    metadata_dims = ['station']
+    # metadata_dims = ['station'] # for old nwm format b4 05/2017
+    metadata_dims = ['feature_id']
     dimsize = len(rootgrp.dimensions[metadata_dims[0]]) # num rows
 
     global_attrs={att:val for att,val in rootgrp.__dict__.iteritems()}
@@ -39,7 +40,8 @@ def readForecast(in_nc = None):
     init_t = init_timestamp.strftime('%Y%m%d_%H%M%S') # reformat timestampe output
 
     # create attr data for COMID and flowstream attr
-    comids_ref = rootgrp.variables['station_id']
+    # comids_ref = rootgrp.variables['station_id'] # for old format b4 05/2017
+    comids_ref = rootgrp.variables['feature_id']
     Qs_ref = rootgrp.variables['streamflow']
     comids = np.copy(comids_ref) 
     Qs = np.copy(Qs_ref)

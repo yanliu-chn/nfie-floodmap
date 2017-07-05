@@ -2,12 +2,13 @@
 # use GNU parallel to do batch processing of forecast table computation
 # Yan Y. Liu <yanliu@illinois.edu>
 # 10/31/2016
+# usage: forecast-table.sh nwmdir nclist day outdir hydratablefile
 fcdir=$1
 [ -z $fcdir ] && fcdir=/projects/nfie/houston_20170118
 fcfilelist="$2"
 day="$3"
 
-#nhddbpath=/gpfs_scratch/usgs/nhd/NFIEGeoNational.gdb #TODO: uncomment if to get anomaly shapes
+nhddbpath=/gpfs_scratch/usgs/nhd/NFIEGeoNational.gdb #TODO: uncomment if to get anomaly shapes
 
 echo "+================================+"
 echo "+===Computing Forecast Table=====+"
@@ -35,7 +36,13 @@ module load parallel python/2.7.10 gdal2-stack pythonlibs/2.7.10
 
 sdir=/projects/nfie/nfie-floodmap/test
 ddir=/gpfs_scratch/nfie/users/hydroprop
-odir=$ddir/$day
+[ ! -z "$5" ] && ddir="$5" # use a diff hydraulic property table
+echo "Using hydraulic prop table: $ddir/hydroprop-fulltable.nc ..."
+if [ ! -z "$4" ]; then
+	odir="$4"
+else
+	odir=$ddir/$day
+fi
 [ ! -d $odir ] && mkdir -p $odir
 jcount=0
 for fcfile in $fcfilelist; do

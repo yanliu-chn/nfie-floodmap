@@ -19,10 +19,12 @@ def updateMax(ncdir = '', ncfile = '', comidlist = [], Qlist = [], h = {}):
     # open nwm netcdf file
     rootgrp = netCDF4.Dataset(f, 'r')
     intype='channel_rt'
-    metadata_dims = ['station']
+    #metadata_dims = ['station'] # for old nwm format b4 05/2017
+    metadata_dims = ['feature_id']
     dimsize = len(rootgrp.dimensions[metadata_dims[0]]) # num rows
     # create attr data for COMID and flowstream attr
-    comids_ref = rootgrp.variables['station_id']
+    #comids_ref = rootgrp.variables['station_id'] # for old nwm format b4 05/2017
+    comids_ref = rootgrp.variables['feature_id']
     Qs_ref = rootgrp.variables['streamflow']
     comids = np.copy(comids_ref) 
     Qs = np.copy(Qs_ref)
@@ -73,8 +75,9 @@ def saveWorstFC(of = '', comidlist = [], Qlist = [], samplefile = ''):
     rootgrp.close() # close netcdf file to save memory
     # create output data
     xds = xr.Dataset({
-        'station_id': (['station'], comidlist),
-        'streamflow': (['station'], Qlist)
+#        'station_id': (['station'], comidlist),
+        'feature_id': (['feature_id'], comidlist),
+        'streamflow': (['feature_id'], Qlist)
     })
     xds.attrs = {
         'NFIESubject': 'worst-scenario forecast calculated from NOAA NWM',
@@ -82,7 +85,7 @@ def saveWorstFC(of = '', comidlist = [], Qlist = [], samplefile = ''):
         'model_output_valid_time': timestamp_str,
         'Description': 'For one nwm forecast that has n forecast timestamps, calculate the max streamflow for each COMID and save it as worst scenario forecast.'
     }
-    xds['station_id'].attrs = { 'units': 'station', 'long_name': 'Station id'}
+    xds['feature_id'].attrs = { 'units': 'feature_id', 'long_name': 'Station id'}
     xds['streamflow'].attrs = { 'units': 'meter^3 / sec', 'long_name': 'River Flow'}
     # save
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Writing netcdf output " + of
