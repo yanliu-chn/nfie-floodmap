@@ -82,6 +82,69 @@ $find_inlets -flow ${n}-flows.shp -dangle ${n}-inlets0.shp \
 && [ $? -ne 0 ] && echo "ERROR creating inlet shp." && exit 1
 Tcount dangle
 
+### burnin process
+doburnin=1
+if [ $doburnin -eq 1 ]; then
+###########################################
+#n=${hucid}_${dem}
+[ ! -f ${n}z.tif ] && mv ${n}.tif ${n}z.tif # original DEM
+## b0. generate NHD HR flowline
+Tstart
+echo "=CMD= ogr2ogr ${n}_flows_hr.shp $dsnhdhr NHDFlowline -where \"REACHCODE like '${hucid}%'\""
+Tstart
+[ ! -f "${n}_flows_hr.shp" ] && \
+ogr2ogr ${n}_flows_hr.shp $dsnhdhr NHDFlowline -where "REACHCODE like '${hucid}%'" \
+&& [ $? -ne 0 ] && echo "ERROR creating flowline hr shp." && exit 1
+Tcount burnflowlinehr
+
+## b1. rasterize flowline
+[ ! -f ${n}srfv.tif ] && \
+read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfoNative.py ${n}z.tif) && \
+echo "gdal_rasterize -ot Int16 -of GTiff -co "COMPRESS=LZW" -co "BIGTIFF=YES" -a_nodata 0 -burn 1 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax ${hucid}_flows_hr.shp ${n}srfv.tif" && \
+#gdal_rasterize -ot Int16 -of GTiff -co "COMPRESS=LZW" -co "BIGTIFF=YES" -a_nodata 0 -burn 1 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax ${hucid}_flows_hr.shp ${n}srfv.tif && \
+gdal_rasterize -ot Int16 -of GTiff -co "COMPRESS=LZW" -co "BIGTIFF=YES" -co "TILED=YES" -init 0 -burn 1 -tr $cellsize_resx $cellsize_resy -te $xmin $ymin $xmax $ymax ${hucid}_flows_hr.shp ${n}srfv.tif && \
+[ $? -ne 0 ] && echo "ERROR burnin: rasterizing HR flowline shp. " && exit 1
+## b2. Burn srfv into z using raster calculator  zb = z-100 * srfv
+Tstart
+[ ! -f ${n}bz.tif ] && \
+echo "gdal_calc.py -A ${n}z.tif -B ${n}srfv.tif --outfile=${n}bz.tif --calc='A-100*B'" && \
+#gdal_calc.py -A ${n}z.tif -B ${n}srfv.tif --outfile=${n}bz.tif --calc="A-100*B" --co="COMPRESS=LZW" --co="BIGTIFF=YES" --co="TILED=YES" --NoDataValue="$nodataDEM"  && \
+gdal_calc.py -A ${n}z.tif -B ${n}srfv.tif --outfile=${n}bz.tif --calc="A-100*B"  --co="BIGTIFF=YES" --NoDataValue="$nodataDEM"  && \
+[ $? -ne 0 ] && echo "ERROR burnin: burn dem -100 using gdal_calc.py" && exit 1
+Tcount burncut100
+## b3. pitremove
+[ ! -f ${n}bfel.tif ] && \
+echo "mpirun -np $np $taudem/pitremove -z ${n}bz.tif -fel ${n}bfel.tif" && \
+## TODO: change np=$np after np>1 works correctly in flowdircond
+mpirun -np 1 $taudem/pitremove -z ${n}bz.tif -fel ${n}bfel.tif && \
+#mpirun -np $np $taudem/pitremove -z ${n}bz.tif -fel ${n}bfel.tif && \
+[ $? -ne 0 ] && echo "ERROR burnin: pitremove " && exit 1
+## b4. d8 to create p raster
+[ ! -f ${n}bp.tif ] && \
+echo "mpirun -np $np $taudemd8 -fel ${n}bfel.tif -p ${n}bp.tif -sd8 ${n}bsd8.tif" && \
+## TODO: change np=$np after np>1 works correctly in flowdircond
+#mpirun -np $np $taudemd8 -fel ${n}bfel.tif -p ${n}bp.tif -sd8 ${n}bsd8.tif && \
+mpirun -np 1 $taudemd8 -fel ${n}bfel.tif -p ${n}bp.tif -sd8 ${n}bsd8.tif && \
+[ $? -ne 0 ] && echo "ERROR burnin: d8" && exit 1
+## b5. Mask D8 flow directions to only have flow directions on streams
+Tstart
+[ ! -f ${n}bmp.tif ] && \
+echo "gdal_calc.py -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc='A*B'" && \
+#gdal_calc.py -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc="A*B" --co="COMPRESS=LZW" --co="BIGTIFF=YES" --co="TILED=YES" --NoDataValue="0" 
+gdal_calc.py -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc="A*B"  --co="BIGTIFF=YES" --NoDataValue="0" 
+[ $? -ne 0 ] && echo "ERROR burnin: mask d8 direction" && exit 1
+Tcount burnmask
+## b6. Apply new TauDEM flow direction conditioning tool "Flowdircond"
+[ ! -f ${n}.tif ] && \
+echo "mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}.tif" && \
+## TODO: change np=$np after np>1 works correctly in flowdircond
+#mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}.tif && \
+mpirun -np 1 $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}.tif && \
+[ $? -ne 0 ] && echo "ERROR burnin: flowdircond " && exit 1
+###########################################
+fi
+Tcount burnin
+
 echo "=5=: rasterize inlet points"
 Tstart
 [ ! -f "${n}-weights.tif" ] && \
