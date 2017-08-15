@@ -10,6 +10,7 @@ for f in `ls /gpfs_scratch/nfie/users/HUC6/*.zip`
 do
     hucid=`basename $f .zip`
     qsubfile=$qsubdir/$hucid.sh
+	
     echo "#!/bin/bash" > $qsubfile
     echo "#PBS -N CATCH$hucid" >> $qsubfile
     echo "#PBS -e $logdir/$hucid.stderr" >> $qsubfile
@@ -26,4 +27,7 @@ do
 #    echo "t2=\`date +%s\`" >> $qsubfile
 #    echo "ttaudem=\`expr \$t2 \\- \$t1\`" >> $qsubfile
 #    echo "echo \"TIME taudem_catchhydrogeo \$ttaudem\"" >> $qsubfile
+
+	[ -f $ddir/$hucid/hydroprop-basetable-$hucid.csv ] && mv $ddir/$hucid/hydroprop-basetable-$hucid.csv $ddir/$hucid/hydroprop-basetable-$hucid.nohand0.csv
+	[ -f $ddir/$hucid/hydroprop-fulltable-$hucid.csv ] && mv $ddir/$hucid/hydroprop-fulltable-$hucid.csv $ddir/$hucid/hydroprop-fulltable-$hucid.nohand0.csv
 done
