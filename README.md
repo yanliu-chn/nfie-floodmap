@@ -10,6 +10,8 @@ We only compute the HAND grid for the nation once. Using HAND, we are developing
 
 If you refer to our work, please cite the following publication(s):
 
-Yan Y Liu, David R Maidment, David G Tarboton, Xing Zheng, Ahmet Yildirim, Nazmus S Sazib and Shaowen Wang. 2016. “A CyberGIS Approach to Generating High-resolution Height Above Nearest Drainage (HAND) Raster for National Flood Mapping”. *The Third International Conference on CyberGIS and Geospatial Data Science*. July 26–28, 2016, Urbana, Illinois. http://dx.doi.org/10.13140/RG.2.2.24234.41925/1
+Liu, Yan Y., David R. Maidment, David G. Tarboton, Xing Zheng, and Shaowen Wang. 2018. A CyberGIS Integration and Computation Framework for High-Resolution Continental-Scale Flood Inundation Mapping. *Journal of the American Water Resources Association (JAWRA)* 
+
+Liu, Yan Y., David R. Maidment, David G. Tarboton, Xing Zheng, Ahmet Yildirim, Nazmus S. Sazib and Shaowen Wang. 2016. A CyberGIS Approach to Generating High-resolution Height Above Nearest Drainage (HAND) Raster for National Flood Mapping. *The Third International Conference on CyberGIS and Geospatial Data Science*. July 26–28, 2016, Urbana, Illinois. http://dx.doi.org/10.13140/RG.2.2.24234.41925/1
 
 
