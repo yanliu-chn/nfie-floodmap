@@ -9,8 +9,6 @@ The workflow of the HAND calculation is illustrated as below:
 The workflow of the construction of hydraulic property table and inundation maps is illustrated as below:
 ![alt text](https://web.corral.tacc.utexas.edu/nfiedata/docs/inunmap-workflow.png) 
 
-We only compute the HAND grid for the nation once. Using HAND, we are developing the inundation mapping methodology by coupling various hydro models and NOAA weather information. We are also working on a scalable geospatial data storage, query, and visualization framework in a separate project in order to provide responsive 3D flood mapping visualization by coupling NED 10m (677GB GeoTIFF, 180 billion cells) or DEMs of finer resolution (e.g., those derived from LiDAR) and NHDPlus (2.67 million vectors) and NHD HR (30 million vectors).
-
 ## Data
 We currently host all the [HAND and inundation map data](https://web.corral.tacc.utexas.edu/nfiedata/) at TACC's Corral storage system. Please download what you need there.
 
