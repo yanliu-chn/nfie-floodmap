@@ -24,25 +24,25 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     global areasqkms
 
     if flowHash is None or len(flowHash) <= 0:
-        print "queryCatchByHash(): ERROR Flowline HASH is empty. \n"
+        print ("queryCatchByHash(): ERROR Flowline HASH is empty. ")
         sys.exit( 1 )
     if not os.path.isdir(odir):
-        print "queryCatchByHash(): ERROR output dir not exists: " + str(odir) + "\n"
+        print ("queryCatchByHash(): ERROR output dir not exists: " + str(odir) )
         sys.exit( 1 )
     of = odir + "/" + Hucid + "_catch.sqlite"
     comidfile = odir + "/" + Hucid + "_comid.txt"
     if os.path.exists(of):
-        print "queryCatchByHash(): ERROR output file already exists: " + str(of) + ". Remove and run this program again if you want to re-create. " + "\n"
+        print ("queryCatchByHash(): ERROR output file already exists: " + str(of) + ". Remove and run this program again if you want to re-create. " )
         sys.exit( 1 )
     
     # open NHDPlus DB
     ds = gdal.OpenEx( NHDDBPath, gdal.OF_VECTOR | gdal.OF_READONLY)
     if ds is None :
-        print "queryCatchByHash(): ERROR Open failed: " + str(NHDDBPath) + "\n"
+        print ("queryCatchByHash(): ERROR Open failed: " + str(NHDDBPath) )
         sys.exit( 1 )
     lyr = ds.GetLayerByName( NHDCatchLayerName )
     if lyr is None :
-        print "queryCatchByHash(): ERROR fetch layer: " + str(NHDCatchLayerName) + "\n"
+        print ("queryCatchByHash(): ERROR fetch layer: " + str(NHDCatchLayerName) )
         sys.exit( 1 )
     lyr.ResetReading()
     num_records = lyr.GetFeatureCount()
@@ -63,29 +63,29 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     fi_areasqkm = lyr_defn.GetFieldIndex('AreaSqKM')
     fdef_areasqkm = lyr_defn.GetFieldDefn(fi_areasqkm)
 
-    print "queryCatchByHash(): Catchment layer GeomType: " + geomTypeStr + " num_records: " + str(num_records) + "\n"   
+    print ("queryCatchByHash(): Catchment layer GeomType: " + geomTypeStr + " num_records: " + str(num_records) )
 
     # create output SQLite (to avoid 2GB shp file limit since polygons take more space)
     #driverName = "ESRI Shapefile"
     driverName = "SQLite"
     drv = gdal.GetDriverByName( driverName )
     if drv is None:
-        print "queryCatchByHash(): ERROR %s driver not available.\n" % driverName
+        print ("queryCatchByHash(): ERROR %s driver not available.\n" % (driverName) )
         sys.exit( 1 )
     ods = drv.Create( of, 0, 0, 0, gdal.GDT_Unknown )
     if ods is None:
-        print "queryCatchByHash(): ERROR Creation of output file failed: "+of+ "\n"
+        print ("queryCatchByHash(): ERROR Creation of output file failed: "+of)
         sys.exit( 1 )
     olyr = ods.CreateLayer( NHDCatchLayerName, srs, geomType)
     if olyr is None:
-        print "queryCatchByHash(): ERROR Layer creation failed: "+NHDCatchLayerName+ "\n"
+        print ("queryCatchByHash(): ERROR Layer creation failed: "+NHDCatchLayerName )
         sys.exit( 1 )
     # create fields
     ofdef_comid = ogr.FieldDefn( "COMID", ogr.OFTInteger)
     ofdef_slope = ogr.FieldDefn( "SLOPE", ogr.OFTReal)
     ofdef_linelen = ogr.FieldDefn( "LINELEN", ogr.OFTReal)
     if olyr.CreateField ( ofdef_comid ) != 0 or olyr.CreateField ( fdef_shplen) != 0 or olyr.CreateField ( fdef_shparea ) != 0 or olyr.CreateField ( fdef_areasqkm ) != 0 or olyr.CreateField ( ofdef_slope ) != 0 or olyr.CreateField ( ofdef_linelen ) != 0:
-        print "queryCatchByHash(): ERROR Creating fields in output .\n"
+        print ("queryCatchByHash(): ERROR Creating fields in output .")
         sys.exit( 1 )
     # get integer index to speed up the loops
     olyr_defn = olyr.GetLayerDefn()
@@ -99,7 +99,7 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
     i = 0
     count = 0
     comid_index_list = np.zeros(len(flowHash), dtype='int32')
-    print "0%"
+    progressStr = "0%"
     for f in lyr: # for each row. in NHDPlus MR, it's 2.67m
         comid = f.GetFieldAsInteger(fi_comid)
         if comid in flowHash: # computationally expensive if hash size is big
@@ -120,17 +120,18 @@ def queryCatchByHash(NHDDBPath = None, NHDCatchLayerName = None, Hucid = None, o
             geom = f.GetGeometryRef()
             fc.SetGeometry( geom ) # this method makes a copy of geom
             if olyr.CreateFeature( fc ) != 0:
-                print "queryCatchByHash(): ERROR Creating new feature in output for COMID=" + str(comid) + " .\n"
+                print ("queryCatchByHash(): ERROR Creating new feature in output for COMID=" + str(comid) )
                 sys.exit( 1 )
             fc.Destroy()
             comid_index_list[count] = comid_index
             count += 1
         i += 1
         if (i % (num_records / 10 + 1) == 0):
-            print "-->" + str((i * 100)/num_records) + "%"
+            progressStr += "-->" + str((i * 100)/num_records) + "%"
 
-    print "\nDone\n"
-    print "CATCHMENT_POLYGON_COUNT " + str(count) + "\n"
+    print (progressStr)
+    print ("\nDone\n")
+    print ("CATCHMENT_POLYGON_COUNT " + str(count) )
     fcomid = open(comidfile, "w")
     fcomid.write(str(count) + "\n") # first row is count
     for i in range(0, count):
@@ -149,11 +150,11 @@ def buildFlowlineHash(flowShpFile = None, lyrName = None, keyFieldName = None):
     # open shape file
     ds = gdal.OpenEx( flowShpFile, gdal.OF_VECTOR | gdal.OF_READONLY)
     if ds is None :
-        print "buildFlowlineHash(): ERROR Open failed: " + str(flowShpFile) + "\n"
+        print ("buildFlowlineHash(): ERROR Open failed: " + str(flowShpFile) )
         sys.exit( 1 )
     lyr = ds.GetLayerByName( lyrName )
     if lyr is None :
-        print "buildFlowlineHash(): ERROR fetch layer: " + str(lyrName) + "\n"
+        print ("buildFlowlineHash(): ERROR fetch layer: " + str(lyrName) )
         sys.exit( 1 )
     lyr.ResetReading()
     num_records = lyr.GetFeatureCount()
@@ -162,7 +163,7 @@ def buildFlowlineHash(flowShpFile = None, lyrName = None, keyFieldName = None):
     fi_slope = lyr_defn.GetFieldIndex('SLOPE')
     fi_linelen = lyr_defn.GetFieldIndex('LENGTHKM')
     if fi_comid < 0 or fi_slope < 0 :
-        print "buildFlowlineHash(): ERROR no key/slope field: " + str(keyFieldName) + "\n"
+        print ("buildFlowlineHash(): ERROR no key/slope field: " + str(keyFieldName) )
         sys.exit( 1 )
 
     # scan for keys 
@@ -209,7 +210,7 @@ if __name__ == '__main__':
 
     # build hash for COMID
     flowHash = buildFlowlineHash(flowShpFile, flowLyrName, flowIDField)
-    print sys.argv[0] + ": Built hash with " + str(len(flowHash)) + " COMIDs\n"
+    print (sys.argv[0] + ": Built hash with " + str(len(flowHash)) + " COMIDs" )
 
     # filter Catchment layer and output
     queryCatchByHash(NHDDBPath, NHDCatchLayerName, flowHucid, outputdir, flowHash)

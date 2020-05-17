@@ -1,4 +1,4 @@
-#!/sw/python-2.7.10/bin/python
+#!/home/yxl/anaconda3/bin/python
 
 import gdal
 import os.path
@@ -79,30 +79,33 @@ lat1 = ext[2][1]
 lat2 = ext[0][1]
 
 # print out RasterInfos
-print fsize,
-print cols,
-print rows,
-print nodata,
-#print stats[0],
-#print stats[1],
-#print stats[2],
-#print stats[3],
-#print "\"" + str(lat1) + "," + str(lon1) + "," + str(lat2) + "," + str(lon2) + "\""
-print str(lon1),
-print str(lat1),
-print str(lon2),
-print str(lat2),
+print('%s %d %d %f %f %f %f %f' % (fsize, cols, rows, nodata, lon1, lat1, lon2, lat2))
+#print fsize,
+#print cols,
+#print rows,
+#print nodata,
+##print stats[0],
+##print stats[1],
+##print stats[2],
+##print stats[3],
+##print "\"" + str(lat1) + "," + str(lon1) + "," + str(lat2) + "," + str(lon2) + "\""
+#print str(lon1),
+#print str(lat1),
+#print str(lon2),
+#print str(lat2),
 
 # calculate cellsize
 resx = (ext[2][0] - ext[0][0])/cols
 resy = (ext[0][1] - ext[2][1])/rows
 
 if resx < 0.01: # unit is degree
-	print "%.15f"  % (resx),
-	print "%.15f" % (resy)
+	print('%.15f %.15f' % (resx, resy))
+#	print "%.15f"  % (resx),
+#	print "%.15f" % (resy)
 else:
-	print "%.15f" % (resx),
-	print "%.15f" % (resy)
+	print('%.2f %.2f' % (resx, resy))
+#	print "%.2f" % (resx),
+#	print "%.2f" % (resx)
 	
 # close dataset
 ds = None

@@ -1,6 +1,6 @@
-# merge TMS tile images using ImageMagick
-# Yan Y. Liu <yanliu@illinois.edu>
-# 02/07/2017
+# tmsmerge.py: merge TMS tile images using ImageMagick
+# Yan Y. Liu <yanliu@illinois.edu>, 02/07/2017
+# 20200515: upgraded to python 3
 
 import sys
 import os
@@ -16,7 +16,7 @@ import subprocess
 def indexTiles(rdir=None, zoomLevel=10, imgFormat='png'):
     wildcard = rdir + '/*/' + str(zoomLevel) + '/*/*.' + imgFormat
     flist = glob.glob(wildcard)
-    print "STAT.Zoom" + str(zoomLevel) + " : " + str(len(flist)) + " tile images"
+    print("STAT.Zoom" + str(zoomLevel) + " : " + str(len(flist)) + " tile images")
     matchPattern = '^.+/([0-9]+)/([0-9]+)\.'+imgFormat+'$'
     myre = re.compile(matchPattern)
     h = {}
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         rzodir = rodir + '/' + str(zoom)
         if not os.path.isdir(rzodir):
             os.mkdir(rzodir)
-        for k, flist in h.iteritems():
+        for k, flist in h.items():
             xy = k.split('.')
             x = xy[0]
             y = xy[1]
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                 continue # by pass
             if (len(flist) == 1): # copy
                 cmd = ['cp', flist[0], odir+'/']
-                print 'CMD: ' + ' '.join(cmd)
+                print('CMD: ' + ' '.join(cmd))
                 succ = subprocess.call(cmd, stderr=subprocess.STDOUT, shell=False)
                 if succ != 0:
                     num_err += 1
@@ -76,17 +76,17 @@ if __name__ == '__main__':
                     cmd.append(flist[i])
                 cmd.append('-composite')
                 cmd.append(odir + '/' + y + '.' + imgFormat)
-                print 'CMD: ' + ' '.join(cmd)
+                print('CMD: ' + ' '.join(cmd))
                 succ = subprocess.call(cmd, stderr=subprocess.STDOUT, shell=False)
                 if succ != 0:
                     num_err += 1
                 else:
                     num_merge += 1
-        print "STAT-Zoom" + str(zoom) + " summary: " + str(num_srctiles) + " srctiles " +  str(len(h)) + " dsttiles " + str(num_cp) + " copied " + str(num_merge) + " merged " + str(num_err) + " failed"
+        print("STAT-Zoom" + str(zoom) + " summary: " + str(num_srctiles) + " srctiles " +  str(len(h)) + " dsttiles " + str(num_cp) + " copied " + str(num_merge) + " merged " + str(num_err) + " failed")
         sys.stdout.flush()
         stat[0] += num_srctiles
         stat[1] += len(h)
         stat[2] += num_cp
         stat[3] += num_merge
         stat[4] += num_err
-    print "STAT-Total " + str(stat[0]) + " srctiles " + str(stat[1]) + " dsttiles " + str(stat[2]) + " copied " + str(stat[3]) + " merged " + str(stat[4]) + " failed "  
+    print("STAT-Total " + str(stat[0]) + " srctiles " + str(stat[1]) + " dsttiles " + str(stat[2]) + " copied " + str(stat[3]) + " merged " + str(stat[4]) + " failed "  )
