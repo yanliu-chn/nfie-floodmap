@@ -20,15 +20,16 @@ def flowlinesInWBD(hucid = None, keyFieldName = None, shpFile = None, lyrName = 
     blyr.ResetReading()
     bnd = None
     bndbbox = None
+    bbb = None
     for f in blyr:
         bnd = f.GetGeometryRef().Clone()
-        bb = bnd.GetEnvelope() # minX, maxX, minY, maxY
+        bbb = bnd.GetEnvelope() # minX, maxX, minY, maxY
         bndbbox = ogr.CreateGeometryFromWkt("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))" % ( \
-                  bb[0], bb[2], \
-                  bb[0], bb[3], \
-                  bb[1], bb[3], \
-                  bb[1], bb[0], \
-                  bb[0], bb[2]))
+                  bbb[0], bbb[2], \
+                  bbb[0], bbb[3], \
+                  bbb[1], bbb[3], \
+                  bbb[1], bbb[0], \
+                  bbb[0], bbb[2]))
         #print("fetched boundary geometry:")
         #print(bnd.ExportToWkt())
         break # assume the first feature has the boundary polygon
@@ -65,10 +66,21 @@ def flowlinesInWBD(hucid = None, keyFieldName = None, shpFile = None, lyrName = 
         else:
             geom = f.GetGeometryRef()
             #print(geom.ExportToWkt())
-            if bndbbox.Contains(geom) or geom.Intersects(bndbbox):
-                if bnd.Contains(geom) or geom.Intersects(bnd):
-                    o.append(f)
-                    count_geommatch += 1
+            # bb in bbb? 
+            bb = geom.GetEnvelope() # minX, maxX, minY, maxY
+            fineCheck = False
+            for x in range(0, 2): # any point is in bnd bbox means further check
+                for y in range(2, 4):
+                    if bb[x] > bbb[0] and bb[x] < bbb[1] and bb[y] > bbb[2] and bb[y] < bbb[3]:
+                        fineCheck = True
+                        break
+                if fineCheck:
+                    break
+            if fineCheck:
+                if bndbbox.Contains(geom) or geom.Intersects(bndbbox):
+                    if bnd.Contains(geom) or geom.Intersects(bnd):
+                        o.append(f)
+                        count_geommatch += 1
             #geom.Destroy()
         #count += 1
         #if count % 100000 == 0:

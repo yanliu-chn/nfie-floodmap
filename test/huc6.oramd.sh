@@ -1,12 +1,12 @@
 #!/bin/bash
 # submit huc6 HAND jobs
 listfile="./list.HUC6" # list of huc6 IDs
-rwdir=/lustre/or-hydra/cades-birthright/yxl/o/hand/HUC6 # root working dir
+rwdir=/srv/o/hand/HUC6 # root working dir
 ldir=/dev/shm # local mem fs, half of physical mem 
-scriptdir="/lustre/or-hydra/cades-birthright/yxl/j/HUC6-scripts"
-logdir="/lustre/or-hydra/cades-birthright/yxl/log/HUC6"
+scriptdir="/srv/j/HUC6-scripts"
+logdir="/srv/log/HUC6"
 comprofile="./huc6-timing.csv"
-m=cades
+m=oramd
 nn=1 # to use local ssd or /dev/shm, we can only use 1 node for now
 mkdir -p $scriptdir
 mkdir -p $logdir

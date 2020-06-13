@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH -J handtms
+#SBATCH -J handtms20200601
 #SBATCH -A birthright
 ##SBATCH -p gpu
 #SBATCH -p high_mem_cd
-#SBATCH -N 2
+#SBATCH -N 3
 #SBATCH -n 20
 #SBATCH -c 1
 #SBATCH -t 12:00:00

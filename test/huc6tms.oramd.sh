@@ -8,15 +8,16 @@
 t1=`date +%s`
 
 # env setup
-source $HOME/sw/softenv
-m=cades
-sdir=$HOME/nfie-floodmap/test
+source /srv/sw/softenv
+m=oramd
+sdir=/srv/nfie-floodmap/test
 source $sdir/handbyhuc.${m}.env
 
 huc=HUC6
 #ddir=$HOME/data/HAND/current
-ddir=/lustre/or-hydra/cades-birthright/yxl/o/hand/HUC6
-odir=$HOME/scratch_br/test/huc6tms_20200601
+ddir=$HOME/data/HAND/20200601
+#odir=$HOME/scratch_br/test/huc6tms
+odir=/srv/o/huc6tms_20200601
 tdir=/dev/shm
 todir=$tdir/tms
 [ ! -d $odir ] && mkdir -p $odir
@@ -27,6 +28,7 @@ rastermetatool=$sdir/getRasterInfo.py
 prj="mercator"
 
 # get list of HUC6 HAND files in zip
+#dataarray=(`ls $ddir/*.zip | head -n 4`)
 dataarray=(`ls $ddir/*.zip`)
 
 # calc local workload
@@ -41,6 +43,10 @@ if [ $SLURM_PROCID -lt $numlast ]; then # take extra
   let "numlocal+=1"
 fi
 echo "[$SLURM_PROCID] `date +%s`: starti: $starti numlocal: $numlocal total:$numtasks nnodes=$SLURM_NNODES numprocs=$SLURM_NPROCS onnode=$SLURM_NODEID"
+
+## debug
+#sleep $((RANDOM%5))
+#exit 0
 
 i=$starti
 let "endi=starti+numlocal"
@@ -59,6 +65,7 @@ do
   mkdir -p $tmsdir
   cd $tdir
   unzip -q $f $hand
+  # crop DEM 
   # create color relief
   gdaldem color-relief $hand $colorfile $colordd -of GTiff -alpha 
   # create TMS tiles: having -a 0,0,0 causes nodata filled with color

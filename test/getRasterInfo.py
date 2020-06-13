@@ -79,7 +79,8 @@ lat1 = geo_ext[2][1]
 lat2 = geo_ext[0][1]
 
 # print out RasterInfos
-print('%s %d %d %f %f %f %f %f' % (fsize, cols, rows, nodata, lon1, lat1, lon2, lat2))
+ostr = '%s %d %d %f %f %f %f %f ' % (fsize, cols, rows, nodata, lon1, lat1, lon2, lat2)
+#print('%s %d %d %f %f %f %f %f' % (fsize, cols, rows, nodata, lon1, lat1, lon2, lat2))
 #print fsize,
 #print cols,
 #print rows,
@@ -99,13 +100,16 @@ resx = (ext[2][0] - ext[0][0])/cols
 resy = (ext[0][1] - ext[2][1])/rows
 
 if resx < 0.01: # unit is degree
-	print('%.15f %.15f' % (resx, resy))
+	ostr += '%.15f %.15f' % (resx, resy)
+	#print('%.15f %.15f' % (resx, resy))
 #	print "%.15f"  % (resx),
 #	print "%.15f" % (resy)
 else:
-	print('%.2f %.2f' % (resx, resy))
+	ostr += '%.2f %.2f' % (resx, resy)
+	#print('%.2f %.2f' % (resx, resy))
 #	print "%.2f" % (resx),
 #	print "%.2f" % (resx)
 	
 # close dataset
 ds = None
+print(ostr)

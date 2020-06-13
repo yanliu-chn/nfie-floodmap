@@ -19,11 +19,11 @@
 t1=`date +%s`
 
 # env
-source $HOME/sw/softenv
+source /srv/sw/softenv
 
-sdir=$HOME/nfie-floodmap/test
-tmssrc=$HOME/scratch_br/test/huc6tms
-tmsdst=$HOME/data/HANDTMS/v0.2
+sdir=/srv/nfie-floodmap/test
+tmssrc=/srv/o/huc6tms_20200601
+tmsdst=$HOME/data/HANDTMS/v0.21
 mkdir -p $tmsdst
 tdir=/dev/shm
 tmpsrc=$tdir/tmssrc
@@ -31,7 +31,7 @@ mkdir -p $tmpsrc
 tmpdst=$tdir/conus
 mkdir -p $tmpdst
 
-log=$HOME/scratch_br/log/handtmsmerge.log
+log=/srv/log/handtmsmerge.log
 
 # unzip HUC6 TMS zips
 cd $tmpsrc

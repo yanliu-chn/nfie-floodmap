@@ -1,19 +1,19 @@
 #!/bin/bash
 # submit huc6 HAND jobs
 listfile="./list.HUC6" # list of huc6 IDs
-rwdir=/lustre/or-hydra/cades-birthright/yxl/o/hand/HUC6 # root working dir
+rwdir=/srv/o/burnin/HUC6 # root working dir
 ldir=/dev/shm # local mem fs, half of physical mem 
-scriptdir="/lustre/or-hydra/cades-birthright/yxl/j/HUC6-scripts"
-logdir="/lustre/or-hydra/cades-birthright/yxl/log/HUC6"
+scriptdir="/srv/j/burnin/HUC6-scripts"
+logdir="/srv/log/burnin/HUC6"
 comprofile="./huc6-timing.csv"
-m=cades
+m=oramd
 nn=1 # to use local ssd or /dev/shm, we can only use 1 node for now
 mkdir -p $scriptdir
 mkdir -p $logdir
 mkdir -p $rwdir
 while read hucid
 do
-    jname="h$hucid"
+    jname="bi$hucid"
     #wdir=$rwdir/$hucid
     #mkdir -p $rwdir/$hucid
     # set nnodes and walltime from previous profile 
@@ -23,7 +23,7 @@ do
     #[[ -z "$np" || $np -lt 1 ]] && np=60 # 3 nodes default
     let "np/=20"
     #let "walltime=$walltime * $np / 3600 + 10"
-    let "walltime=$walltime * $np / 3600 + 5"
+    let "walltime=$walltime * $np / 3600 + 15"
     [ $walltime -gt 336 ] && walltime=336 # set max walltime
     # real np
     np=32
@@ -36,7 +36,7 @@ do
         -e "s|__T__|$walltime|g" \
         -e "s|__HUCID__|$hucid|g" \
         -e "s|__LOGDIR__|$logdir|g" \
-        ./_handbyhuc.${m}.sh >$scriptdir/huc$hucid.sh
+        ./_handbyhuc-burnin.${m}.sh >$scriptdir/huc$hucid.sh
 
     unset walltime
 done<$listfile
