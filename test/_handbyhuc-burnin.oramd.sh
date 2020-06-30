@@ -155,12 +155,18 @@ gdal_calc.py --quiet -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc=
 Tcount burnmask
 ## b6. Apply new TauDEM flow direction conditioning tool "Flowdircond"
 Tstart
-[ ! -f ${n}.tif ] && \
+tmp_bi=${n}_tmpbi.tif
+[ -f "$tmp_bi" ] && rm $tmp_bi
+[ ! -f ${n}bi.tif ] && \
 echo "mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}.tif" && \
 ## TODO: change np=$np after np>1 works correctly in flowdircond
 #mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}.tif && \
-$cmd_mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}bi.tif && \
+$cmd_mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc $tmp_bi && \
 [ $? -ne 0 ] && echo "ERROR burnin: flowdircond " && exit 1
+# now assign the correct no data value
+read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfoNative.py ${n}z.tif) && \
+gdal_translate -a_nodata $nodataDEM $tmp_bi ${n}bi.tif
+rm $tmp_bi
 ###########################################
 Tcount burnflowdircond
 

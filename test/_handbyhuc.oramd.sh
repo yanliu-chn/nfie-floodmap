@@ -254,7 +254,7 @@ echo "=17=: addon hydro properties "
 echo "calculate base hydraulic property table"
 Tstart
 echo "python $sdir/hydraulic_property_postprocess.py $wdir/hydroprop-basetable-${n}.csv 0.05 $wdir/hydroprop-fulltable-${n}.csv"
-[ ! -f hydroprop-fulltable-${n}.csv ] && python $sdir/hydraulic_property_postprocess.py hydroprop-basetable-${n}.csv 0.05 hydrogeo-fulltable-${n}.csv
+[ ! -f hydroprop-fulltable-${n}.csv ] && python $sdir/hydraulic_property_postprocess.py hydroprop-basetable-${n}.csv 0.05 hydroprop-fulltable-${n}.csv
 Tcount hydratable
 
 echo "=18=: extract waterbody in huc"

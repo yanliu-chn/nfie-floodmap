@@ -39,6 +39,9 @@ huclen=${#hucid}
 np="$3"
 [ -z "$np" ] && np=$SLURM_NTASKS && [ -z "$np" ] && np=32
 
+#cmd_mpirun="mpirun -mca btl tcp,vader,self -mca coll libnbc,tuned,sm,self "
+cmd_mpirun="mpirun -mca btl openib,vader,self --mca btl_openib_if_exclude mlx5_1:1 "
+
 T00=`date +%s` 
 echo "[`date`] Running HAND workflow for HUC$hucid($n) using $np cores..."
 rwdir=$HOME/scratch/test # root working dir
@@ -139,7 +142,7 @@ echo "=6=: taudem pitremove"
 echo "=6CMD= mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif"
 Tstart
 [ ! -f "${n}fel.tif" ] && \
-mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif \
+$cmd_mpirun -np $np $taudem/pitremove -z ${n}.tif -fel ${n}fel.tif \
 && [ $? -ne 0 ] && echo "ERROR creating pitremove DEM." && exit 1
 Tcount pitremove 
 
@@ -149,7 +152,7 @@ echo "=7CMD= mpirun -np $np $taudemdinf -fel ${n}fel.tif -ang ${n}ang.tif -slp $
 Tstart
 [ ! -f "${n}ang.tif" ] && \
 #mpirun -np $np $taudem/dinfflowdir -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
-mpirun -np $np $taudemdinf -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
+$cmd_mpirun -np $np $taudemdinf -fel ${n}fel.tif -ang ${n}ang.tif -slp ${n}slp.tif \
 && [ $? -ne 0 ] && echo "ERROR creating dinf raster." && exit 1
 Tcount dinf
 
@@ -159,7 +162,7 @@ echo "=8CMD= mpirun -np $np $taudemd8 -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8
 Tstart
 [ ! -f "${n}p.tif" ] && \
 #mpirun -np $np $taudem/d8flowdir -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
-mpirun -np $np $taudemd8 -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
+$cmd_mpirun -np $np $taudemd8 -fel ${n}fel.tif -p ${n}p.tif -sd8 ${n}sd8.tif \
 && [ $? -ne 0 ] && echo "ERROR creating d8 raster." && exit 1
 Tcount d8
 
@@ -167,7 +170,7 @@ echo "=9=: taudem aread8 with weights"
 echo "=9CMD= mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif -nc"
 Tstart
 [ ! -f "${n}ssa.tif" ] && \
-mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif -nc \
+$cmd_mpirun -np $np $taudem/aread8 -p ${n}p.tif -ad8 ${n}ssa.tif -wg ${n}-weights.tif -nc \
 && [ $? -ne 0 ] && echo "ERROR creating aread8 raster with weights." && exit 1
 Tcount aread8w
 
@@ -175,7 +178,7 @@ echo "=10=: taudem threshold"
 echo "=10CMD= mpirun -np $np $taudem/threshold -ssa ${n}ssa.tif -src ${n}src.tif -thresh 1 "
 Tstart
 [ ! -f "${n}src.tif" ] && \
-mpirun -np $np $taudem/threshold -ssa ${n}ssa.tif -src ${n}src.tif -thresh 1 \
+$cmd_mpirun -np $np $taudem/threshold -ssa ${n}ssa.tif -src ${n}src.tif -thresh 1 \
 && [ $? -ne 0 ] && echo "ERROR creating streamgrid using threshold." && exit 1
 Tcount threshold
 
@@ -183,7 +186,7 @@ echo "=11=: taudem dinfdistdown"
 echo "=11CMD= mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v"
 Tstart
 [ ! -f "${n}dd.tif" ] && \
-mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v \
+$cmd_mpirun -np $np $taudem/dinfdistdown -fel ${n}fel.tif -ang ${n}ang.tif -src ${n}src.tif -dd ${n}dd.tif -m ave v \
 && [ $? -ne 0 ] && echo "ERROR creating HAND raster." && exit 1
 Tcount dinfdistdown
 
@@ -243,14 +246,14 @@ stageconf=$sdir/stage.txt
 [ ! -f $stageconf ] && echo "ERROR: stage config not exist $stageconf" && exit 1
 echo "mpirun -np $np $taudem_catchhydrogeo/catchhydrogeo -hand $wdir/${n}dd.tif -catch $wdir/${n}catchmask.tif -catchlist $wdir/${n}_comid.txt -slp $wdir/${n}slp.tif -h $stageconf -table $wdir/hydroprop-basetable-${n}.csv"
 [ ! -f hydroprop-basetable-${n}.csv ] && \
-mpirun -np 1 $taudem_catchhydrogeo/catchhydrogeo -hand ${n}dd.tif -catch ${n}catchmask.tif -catchlist ${n}_comid.txt -slp ${n}slp.tif -h $stageconf -table hydroprop-basetable-${n}.csv
+$cmd_mpirun -np $np $taudem_catchhydrogeo/catchhydrogeo -hand ${n}dd.tif -catch ${n}catchmask.tif -catchlist ${n}_comid.txt -slp ${n}slp.tif -h $stageconf -table hydroprop-basetable-${n}.csv
 Tcount catchhydrogeo
 
 echo "=17=: addon hydro properties "
 echo "calculate base hydraulic property table"
 Tstart
 echo "python $sdir/hydraulic_property_postprocess.py $wdir/hydroprop-basetable-${n}.csv 0.05 $wdir/hydroprop-fulltable-${n}.csv"
-[ ! -f hydroprop-fulltable-${n}.csv ] && python $sdir/hydraulic_property_postprocess.py hydroprop-basetable-${n}.csv 0.05 hydrogeo-fulltable-${n}.csv
+[ ! -f hydroprop-fulltable-${n}.csv ] && python $sdir/hydraulic_property_postprocess.py hydroprop-basetable-${n}.csv 0.05 hydroprop-fulltable-${n}.csv
 Tcount hydratable
 
 echo "=18=: extract waterbody in huc"

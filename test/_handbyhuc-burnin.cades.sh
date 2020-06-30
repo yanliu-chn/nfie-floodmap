@@ -39,6 +39,9 @@ huclen=${#hucid}
 np="$3"
 [ -z "$np" ] && np=$SLURM_NTASKS && [ -z "$np" ] && np=32
 
+#cmd_mpirun="mpirun -mca btl tcp,vader,self -mca coll libnbc,tuned,sm,self "
+cmd_mpirun="mpirun -mca btl openib,vader,self --mca btl_openib_if_exclude mlx5_1:1 "
+
 T00=`date +%s` 
 echo "[`date`] Running HAND workflow for HUC$hucid($n) using $np cores..."
 rwdir=$HOME/scratch/test # root working dir
@@ -120,7 +123,7 @@ Tstart
 [ ! -f ${n}bz.tif ] && \
 echo "gdal_calc.py -A ${n}z.tif -B ${n}srfv.tif --outfile=${n}bz.tif --calc='A-100*B'" && \
 #gdal_calc.py -A ${n}z.tif -B ${n}srfv.tif --outfile=${n}bz.tif --calc="A-100*B" --co="COMPRESS=LZW" --co="BIGTIFF=YES" --co="TILED=YES" --NoDataValue="$nodataDEM"  && \
-gdal_calc.py --quiet -A ${n}z.tif -B ${n}srfv.tif --outfile=${n}bz.tif --calc="A-100*B"  --co="BIGTIFF=YES" --NoDataValue="$nodataDEM"  && \
+gdal_calc.py --quiet -A ${n}z.tif -B ${n}srfv.tif --outfile=${n}bz.tif --calc="A-100*B"  --co="COMPRESS=LZW" --co="BIGTIFF=YES" --NoDataValue="$nodataDEM"  && \
 [ $? -ne 0 ] && echo "ERROR burnin: burn dem -100 using gdal_calc.py" && exit 1
 Tcount burncut100
 ## b3. pitremove
@@ -128,7 +131,7 @@ Tstart
 [ ! -f ${n}bfel.tif ] && \
 echo "mpirun -np $np $taudem/pitremove -z ${n}bz.tif -fel ${n}bfel.tif" && \
 ## TODO: change np=$np after np>1 works correctly in flowdircond
-mpirun -np 1 $taudem/pitremove -z ${n}bz.tif -fel ${n}bfel.tif && \
+$cmd_mpirun -np $np $taudem/pitremove -z ${n}bz.tif -fel ${n}bfel.tif && \
 #mpirun -np $np $taudem/pitremove -z ${n}bz.tif -fel ${n}bfel.tif && \
 [ $? -ne 0 ] && echo "ERROR burnin: pitremove " && exit 1
 Tcount burnpitfill
@@ -138,7 +141,7 @@ Tstart
 echo "mpirun -np $np $taudemd8 -fel ${n}bfel.tif -p ${n}bp.tif -sd8 ${n}bsd8.tif" && \
 ## TODO: change np=$np after np>1 works correctly in flowdircond
 #mpirun -np $np $taudemd8 -fel ${n}bfel.tif -p ${n}bp.tif -sd8 ${n}bsd8.tif && \
-mpirun -np 1 $taudemd8 -fel ${n}bfel.tif -p ${n}bp.tif -sd8 ${n}bsd8.tif && \
+$cmd_mpirun -np $np $taudemd8 -fel ${n}bfel.tif -p ${n}bp.tif -sd8 ${n}bsd8.tif && \
 [ $? -ne 0 ] && echo "ERROR burnin: d8" && exit 1
 Tcount burnd8
 ## b5. Mask D8 flow directions to only have flow directions on streams
@@ -146,17 +149,23 @@ Tstart
 [ ! -f ${n}bmp.tif ] && \
 echo "gdal_calc.py -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc='A*B'" && \
 #gdal_calc.py -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc="A*B" --co="COMPRESS=LZW" --co="BIGTIFF=YES" --co="TILED=YES" --NoDataValue="0" 
-gdal_calc.py --quiet -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc="A*B"  --co="BIGTIFF=YES" --NoDataValue="0" 
+gdal_calc.py --quiet -A ${n}bp.tif -B ${n}srfv.tif --outfile=${n}bmp.tif --calc="A*B" --co="COMPRESS=LZW" --co="BIGTIFF=YES" --NoDataValue="0" 
 [ $? -ne 0 ] && echo "ERROR burnin: mask d8 direction" && exit 1
 Tcount burnmask
 ## b6. Apply new TauDEM flow direction conditioning tool "Flowdircond"
 Tstart
-[ ! -f ${n}.tif ] && \
+tmp_bi=${n}_tmpbi.tif
+[ -f "$tmp_bi" ] && rm $tmp_bi
+[ ! -f ${n}bi.tif ] && \
 echo "mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}.tif" && \
 ## TODO: change np=$np after np>1 works correctly in flowdircond
 #mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}.tif && \
-mpirun -np 1 $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc ${n}bi.tif && \
+$cmd_mpirun -np $np $taudem/flowdircond -z ${n}z.tif -p ${n}bmp.tif -zfdc $tmp_bi && \
 [ $? -ne 0 ] && echo "ERROR burnin: flowdircond " && exit 1
+# now assign the correct no data value
+read fsizeDEM colsDEM rowsDEM nodataDEM xmin ymin xmax ymax cellsize_resx cellsize_resy<<<$(python $sdir/getRasterInfoNative.py ${n}z.tif) && \
+gdal_translate -a_nodata $nodataDEM -co "COMPRESS=LZW" -co "BIGTIFF=YES" $tmp_bi ${n}bi.tif
+rm $tmp_bi
 ###########################################
 Tcount burnflowdircond
 

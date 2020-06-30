@@ -30,7 +30,8 @@ def readForecast(in_nc = None):
     metadata_dims = ['feature_id']
     dimsize = len(rootgrp.dimensions[metadata_dims[0]]) # num rows
 
-    global_attrs={att:val for att,val in rootgrp.__dict__.iteritems()}
+    #global_attrs={att:val for att,val in rootgrp.__dict__.iteritems()}
+    global_attrs={att:val for att,val in rootgrp.__dict__.items()}
     timestamp_str=global_attrs['model_output_valid_time']
     timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d_%H:%M:%S') # read
     #timestamp.replace(tzinfo=pytz.UTC) # set timezone 
@@ -53,14 +54,14 @@ def readForecast(in_nc = None):
     for i in range(Qs.size):
         if Qs[i] < 0.0:
             negCount += 1
-    print "readForecast(): Warning: read " + str(negCount) + " forecasts with negative value. Will skip these COMIDs."
+    print ("readForecast(): Warning: read " + str(negCount) + " forecasts with negative value. Will skip these COMIDs.")
 
     # create hash table
     h = dict.fromkeys(comids)
     for i in range(0, dimsize):
         h[comids[i]] = i
 
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + " Loaded " + str(len(comids)) + " stations"
+    print (datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + " Loaded " + str(len(comids)) + " stations")
     sys.stdout.flush()
 
     return { 'timestamp': t, 'init_timestamp': init_t}
@@ -93,17 +94,17 @@ def Hinterpolate(Qfc = 0.0, Hlist = [], Qlist = [], count = 0, comid = 0):
     if Qlist[Q2i] < 0.00000001: # stage table is wrong
         return -9999.0 # can't predict
     if abs(Q2 - Q1) < 0.000001:
-        print "WARNING: discharge data flat: count=" + str(count) + " Q1="+str(Q1)+" Q2="+str(Q2) + " Qfc=" + str(Qfc)
+        print ("WARNING: discharge data flat: count=" + str(count) + " Q1="+str(Q1)+" Q2="+str(Q2) + " Qfc=" + str(Qfc))
         return Hlist[Q2i]
     
     Hfc =  (Qfc - Q1) * (Hlist[Q2i] - Hlist[Q1i]) / (Q2 - Q1) + Hlist[Q1i]
     if Hfc > 25.0: # debug
-        print "DEBUG: irregular Hfc: comid=" + str(comid) + " Hfc=" + str(Hfc) + " Qfc=" + str(Qfc) + " Q1=" + str(Q1) + " Q2=" + str(Q2) + " H1=" +str(Hlist[Q1i]) + " H2=" +str(Hlist[Q2i]) + " Q1i=" + str(Q1i) + " Q2i=" + str(Q2i)
+        print ("DEBUG: irregular Hfc: comid=" + str(comid) + " Hfc=" + str(Hfc) + " Qfc=" + str(Qfc) + " Q1=" + str(Q1) + " Q2=" + str(Q2) + " H1=" +str(Hlist[Q1i]) + " H2=" +str(Hlist[Q2i]) + " Q1i=" + str(Q1i) + " Q2i=" + str(Q2i))
     return Hfc
 
 def updateH(comid = 0, fccount = 0, count = 0, numHeights = 83, h = None, Qs = None, Hlist = None, Qlist = None, comidlist = None, Hfclist = None, Qfclist = None):
     if count != numHeights:
-        print "Warning: COMID " + str(comid) + " has <" + str(numHeights) + " rows on hydroprop table"
+        print ("Warning: COMID " + str(comid) + " has <" + str(numHeights) + " rows on hydroprop table")
     j = h[comid]
     Qfc = Qs[j]
     if Qfc > 0.0:
@@ -138,7 +139,7 @@ def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights
         colH = None # memory to store Stage column
         colQ = None # memory to store Discharge (m3s-1)/Discharge column
         filetype = hpfile.split('.')[-1]
-        print hpfile + "   +++++++   " + filetype
+        print (hpfile + "   +++++++   " + filetype)
         if filetype == 'csv':
             hpdata = pd.read_csv(hpfile)
             colcatchid = np.copy(hpdata['CatchId'])
@@ -151,7 +152,7 @@ def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights
             colQ = np.copy(hpdata.variables['Discharge'])
         #TODO: error handling on unsupported file formats
         catchcount += (colcatchid.size / numHeights )
-        print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + hpfile + " : " + str(colcatchid.size) + " rows "
+        print (datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + hpfile + " : " + str(colcatchid.size) + " rows ")
         sys.stdout.flush()
         comid = None
         count = 0
@@ -185,7 +186,7 @@ def forecastH (init_timestr = None, timestr = None, tablelist = None, numHeights
                 fccount += 1
             else:
                 nulls += 1
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Read " + str(len(comids)) + " stations from NWM, " + str(catchcount) + " catchments from hydro table. " + str(missings / numHeights) + " comids in hydro table but not in NWM. " + str(nulls) + " comids null and skipped. " + str(fccount) + " forecasts generated."
+    print (datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Read " + str(len(comids)) + " stations from NWM, " + str(catchcount) + " catchments from hydro table. " + str(missings / numHeights) + " comids in hydro table but not in NWM. " + str(nulls) + " comids null and skipped. " + str(fccount) + " forecasts generated.")
     sys.stdout.flush()
 
     # save forecast output
@@ -221,20 +222,23 @@ def saveForecast(init_timestr = None, timestr = None, odir = None):
     ofilename = 'inun-hq-table-at-' + init_timestr + '-for-' +  timestr
     ofilenetcdf = odir + '/' + ofilename + '.nc'
     ofilecsv = odir + '/' + ofilename + '.csv'
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Writing netcdf output " + ofilenetcdf 
+    print (datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Writing netcdf output " + ofilenetcdf )
     sys.stdout.flush()
     xds.to_netcdf(ofilenetcdf)
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Writing csv output " + ofilecsv
+    print (datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "Writing csv output " + ofilecsv )
     sys.stdout.flush()
-    with open(ofilecsv, 'wb') as ofcsv:
-        ow = csv.writer(ofcsv, delimiter = ',')
+    with open(ofilecsv, 'w') as ofcsv:
+        ow = csv.writer(ofcsv, delimiter = ',') 
+        #ow = csv.DictWriter(ofcsv, fieldnames = ['COMID', 'H', 'Q'])
 #        ow.writerow(['COMID', 'Time', 'H', 'Q']) # header
-        ow.writerow(['COMID', 'H', 'Q']) # header
+        ow.writerow(['COMID', 'H', 'Q']) # header 
+        #ow.writeheader() # header 
         for i in range(fccount):
 #            ow.writerow([comidlist[i], timestr, Hfclist[i], Qfclist[i]])
             ow.writerow([comidlist[i], Hfclist[i], Qfclist[i]])
+            #ow.writerow({'COMID': comidlist[i], 'H': Hfclist[i], 'Q': Qfclist[i]})
 
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "DONE"
+    print (datetime.now().strftime("%Y-%m-%d %H:%M:%S : ") + "DONE")
     sys.stdout.flush()
 
 def createAnomalyMap(anomalyMethod='linearrate', anomalyThreshold = 2.5, filterThreshold = 3.703703, NHDDBPath = None, NHDLayerName = None, odir=None):
@@ -252,11 +256,11 @@ def createAnomalyMap(anomalyMethod='linearrate', anomalyThreshold = 2.5, filterT
     # open NHDPlus MR to scan each flowline only once
     ds = gdal.OpenEx( NHDDBPath, gdal.OF_VECTOR | gdal.OF_READONLY)
     if ds is None :
-        print "createAnomalyMap(): ERROR Open failed: " + str(NHDDBPath) + "\n"
+        print ("createAnomalyMap(): ERROR Open failed: " + str(NHDDBPath) )
         sys.exit( 1 )
     lyr = ds.GetLayerByName( NHDLayerName )
     if lyr is None :
-        print "createAnomalyMap(): ERROR fetch layer: " + str(NHDLayerName) + "\n"
+        print ("createAnomalyMap(): ERROR fetch layer: " + str(NHDLayerName) )
         sys.exit( 1 )
     lyr.ResetReading()
     num_records = lyr.GetFeatureCount()
@@ -277,15 +281,15 @@ def createAnomalyMap(anomalyMethod='linearrate', anomalyThreshold = 2.5, filterT
     of = odir + '/' + ofilename + '.shp'
     drv = gdal.GetDriverByName( driverName )
     if drv is None:
-        print "createAnomalyMap(): ERROR %s driver not available.\n" % driverName
+        print ("createAnomalyMap(): ERROR %s driver not available.\n" % driverName )
         sys.exit( 1 )
     ods = drv.Create( of, 0, 0, 0, gdal.GDT_Unknown )
     if ods is None:
-        print "createAnomalyMap(): ERROR Creation of output file failed: "+of+ "\n"
+        print ("createAnomalyMap(): ERROR Creation of output file failed: "+of )
         sys.exit( 1 )
     olyr = ods.CreateLayer('anomalymap', srs, geomType)
     if olyr is None:
-        print "createAnomalyMap(): ERROR Layer creation failed: anomalymap "+ "\n"
+        print ("createAnomalyMap(): ERROR Layer creation failed: anomalymap ")
         sys.exit( 1 )
     # create fields
     ofdef_comid = ogr.FieldDefn( "COMID", ogr.OFTInteger)
@@ -293,7 +297,7 @@ def createAnomalyMap(anomalyMethod='linearrate', anomalyThreshold = 2.5, filterT
     ofdef_Q = ogr.FieldDefn( "Q", ogr.OFTReal)
     ofdef_rating = ogr.FieldDefn( "RATING", ogr.OFTReal)
     if olyr.CreateField ( ofdef_comid ) != 0 or olyr.CreateField ( fdef_huc ) != 0 or olyr.CreateField ( ofdef_Q ) != 0 or olyr.CreateField ( fdef_meanflow ) != 0 or olyr.CreateField ( ofdef_rating ) != 0 or olyr.CreateField ( ofdef_H ) != 0 :
-        print "createAnomalyMap(): ERROR Creating fields in output .\n"
+        print ("createAnomalyMap(): ERROR Creating fields in output ." )
         sys.exit( 1 )
     # get integer index to speed up the loops
     olyr_defn = olyr.GetLayerDefn()
@@ -330,14 +334,14 @@ def createAnomalyMap(anomalyMethod='linearrate', anomalyThreshold = 2.5, filterT
         geom = f.GetGeometryRef()
         fc.SetGeometry( geom ) # this method makes a copy of geom
         if olyr.CreateFeature( fc ) != 0:
-            print "createAnomalyMap(): ERROR Creating new feature in output for COMID=" + str(comid) + " .\n"
+            print ("createAnomalyMap(): ERROR Creating new feature in output for COMID=" + str(comid) )
             sys.exit( 1 )
         fc.Destroy()
         count += 1
     ds = None
     ods = None 
 
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S : createAnomalyMap ") + " generated " + str(count) + " anomalies from " + str(fccount) + " forecast reaches"
+    print (datetime.now().strftime("%Y-%m-%d %H:%M:%S : createAnomalyMap ") + " generated " + str(count) + " anomalies from " + str(fccount) + " forecast reaches" )
         
 def calcAnomalyRate(Q = 0.0, meanflow = 0.00000001, anomalyMethod='linearrate', anomalyThreshold = 2.5, filterThreshold = 3.703703):
     #filterThreshold = 100.0 / 27 # 100cfs; 100/27 cms
@@ -404,7 +408,7 @@ if __name__ == '__main__':
     else: # single netcdf file
         tablelist += [hpinput]
         count = 1
-    print str(count) + " hydro property tables will be read."
+    print (str(count) + " hydro property tables will be read.")
     sys.stdout.flush()
 
     forecastH(init_timestr, timestr, tablelist, 83, huclist, odir, nhddbpath)

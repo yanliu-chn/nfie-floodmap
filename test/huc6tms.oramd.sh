@@ -26,6 +26,7 @@ colorfile=$sdir/HAND-blues.clr
 rastermetatool=$sdir/getRasterInfo.py
 #prj="geodetic" 
 prj="mercator"
+conusshp=$HOME/data/conus/conus_us.shp # for conus land border clipping
 
 # get list of HUC6 HAND files in zip
 #dataarray=(`ls $ddir/*.zip | head -n 4`)
@@ -60,12 +61,21 @@ do
   echo "[$SLURM_PROCID] processing HUC6 $n ..."
   # unzip hand
   hand=$n/${n}hand.tif
+  wbd=$n/${n}-wbd.shp
   colordd=$n/${n}clr.tif
   tmsdir=$todir/$n
   mkdir -p $tmsdir
   cd $tdir
-  unzip -q $f $hand
+  unzip -q $f $hand $n/${n}-wbd.*
   # crop DEM 
+  newwbd=$n/${n}_wbdnew.shp
+  python $sdir/conus_clip.py $conusshp `basename $conusshp .shp` $wbd `basename $wbd .shp` $newwbd
+  newhand=$n/${n}handinconus.tif
+  if [ -f $newwbd ]; then 
+    echo "land border huc, clipping using conus shp..."
+    gdalwarp  -cutline $newwbd -cl `basename $newwbd .shp` -crop_to_cutline -of "GTiff" -overwrite -co "BIGTIFF=YES" $hand $newhand
+    hand=$newhand
+  fi
   # create color relief
   gdaldem color-relief $hand $colorfile $colordd -of GTiff -alpha 
   # create TMS tiles: having -a 0,0,0 causes nodata filled with color
